@@ -1,0 +1,77 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  :root {
+    --radius-sm: 0.5rem;
+    --radius-md: 0.75rem;
+    --radius-lg: 1rem;
+    --radius-xl: 1.25rem;
+    --shadow-soft: 0 4px 12px rgba(15, 23, 42, 0.06);
+    --shadow-elevated: 0 10px 25px rgba(15, 23, 42, 0.12);
+  }
+}
+
+@layer components {
+  .container-page { @apply mx-auto max-w-7xl px-4 sm:px-6 lg:px-8; }
+  .card { @apply rounded-xl border bg-white shadow-sm; box-shadow: var(--shadow-soft); }
+  .card-elevated { @apply rounded-2xl border bg-white; box-shadow: var(--shadow-elevated); }
+  .glass { @apply bg-white/70 backdrop-blur supports-[backdrop-filter]:bg-white/60; }
+
+  .btn { @apply inline-flex items-center justify-center font-medium rounded-xl transition-colors; }
+  .btn-primary { @apply btn text-white bg-brand hover:bg-brand-dark; }
+  .btn-outline { @apply btn border text-gray-800 hover:bg-gray-50; }
+  .btn-ghost { @apply btn text-gray-700 hover:bg-gray-100; }
+  .btn-lg { @apply px-5 py-3; }
+  .btn-md { @apply px-4 py-2.5; }
+
+  .input { @apply block w-full rounded-2xl border-2 border-gray-300 bg-white px-4 py-3 text-gray-900 placeholder:text-gray-400 shadow-inner focus:outline-none focus:border-brand focus:ring-4 focus:ring-brand/20 transition; }
+  .input-md { @apply px-4 py-2.5 text-[0.95rem]; }
+  .input-lg { @apply px-4 py-3.5 text-base; }
+  .input-error { @apply border-red-400 focus:border-red-500 focus:ring-red-200; }
+  .label { @apply block text-sm font-semibold text-gray-800; }
+  .help-text { @apply mt-1 text-sm text-gray-500; }
+  .error-text { @apply mt-1 text-sm text-red-600; }
+
+  .input-group { @apply relative; }
+  .input-icon { @apply pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 h-5 w-5 text-gray-400; }
+  .with-icon-left { @apply pl-11; }
+  .input-action { @apply absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600; }
+  .with-icon-right { @apply pr-11; }
+
+  .badge { @apply inline-flex items-center rounded-full px-3 py-1 text-xs font-semibold; }
+  .badge-soft { @apply bg-brand/10 text-brand; }
+
+  .nav-link { @apply text-sm text-gray-600 hover:text-gray-900; }
+  .nav-cta { @apply text-sm font-medium text-brand hover:text-brand-dark; }
+  .nav-item { @apply inline-flex items-center justify-center h-9 rounded-full px-4 text-sm font-medium border transition-colors border-transparent text-gray-600 hover:text-gray-900 hover:bg-gray-50; }
+  .nav-item--active { @apply border-gray-200 text-gray-900 bg-white; }
+
+  .hero { @apply relative overflow-hidden; }
+  .hero-bg { @apply absolute inset-0 -z-10 bg-gradient-to-br from-indigo-50 via-slate-50 to-slate-100; }
+  .hero-title { @apply text-4xl sm:text-5xl font-bold tracking-tight text-gray-900; }
+  .hero-subtitle { @apply mt-4 text-lg text-gray-600 max-w-prose; }
+
+  .feature-grid { @apply grid md:grid-cols-2 gap-6; }
+  .feature { @apply rounded-xl border bg-white p-6 shadow-sm; }
+
+  .auth-page { @apply min-h-screen relative flex items-center justify-center bg-gradient-to-b from-white to-slate-50; }
+  .auth-overlay { @apply absolute inset-0 -z-10; background-image: radial-gradient(40% 60% at 20% 20%, rgba(99,102,241,.12), transparent), radial-gradient(35% 55% at 80% 70%, rgba(168,85,247,.12), transparent); }
+  .auth-card { @apply w-full max-w-md p-8 bg-white border rounded-2xl shadow-2xl; }
+
+  /* Theme overrides for quick brand switching */
+  .theme-emerald .btn-primary { @apply bg-emerald-500 hover:bg-emerald-600; }
+  .theme-emerald .nav-cta { @apply text-emerald-600 hover:text-emerald-700; }
+  .theme-emerald .badge-soft { @apply bg-emerald-50 text-emerald-600; }
+  .theme-emerald .input { @apply focus:border-emerald-500; }
+  .theme-emerald .input:focus { @apply ring-emerald-200; }
+  .theme-emerald .hero-bg { @apply from-emerald-50 via-slate-50 to-slate-100; }
+
+  .theme-violet .btn-primary { @apply bg-violet-500 hover:bg-violet-600; }
+  .theme-violet .nav-cta { @apply text-violet-600 hover:text-violet-700; }
+  .theme-violet .badge-soft { @apply bg-violet-50 text-violet-600; }
+  .theme-violet .input { @apply focus:border-violet-500; }
+  .theme-violet .input:focus { @apply ring-violet-200; }
+  .theme-violet .hero-bg { @apply from-violet-50 via-slate-50 to-slate-100; }
+}
