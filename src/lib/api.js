@@ -77,3 +77,42 @@ export async function convPostProfile({ sessionId, traits = {}, grades = {}, pre
   })
   return parseJson(res)
 }
+
+export async function convDeleteSession(sessionId) {
+  const url = `${base}/api/conversations/sessions/${sessionId}/delete`
+  const res = await fetch(url, { method: 'POST' })
+  // delete returns 204; parseJson will return {} on empty body
+  return parseJson(res)
+}
+
+// Onboarding API
+export async function onboardingMe(idToken) {
+  const url = `${base}/api/auth/onboarding/me/`
+  const res = await fetch(url, {
+    method: 'GET',
+    headers: { Authorization: `Bearer ${idToken}` },
+  })
+  return parseJson(res)
+}
+
+export async function onboardingSave(idToken, payload) {
+  const url = `${base}/api/auth/onboarding/save/`
+  const res = await fetch(url, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      Authorization: `Bearer ${idToken}`,
+    },
+    body: JSON.stringify(payload || {}),
+  })
+  return parseJson(res)
+}
+
+export async function onboardingDashboard(idToken) {
+  const url = `${base}/api/auth/onboarding/dashboard/`
+  const res = await fetch(url, {
+    method: 'GET',
+    headers: { Authorization: `Bearer ${idToken}` },
+  })
+  return parseJson(res)
+}

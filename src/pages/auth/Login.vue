@@ -17,7 +17,7 @@ const passwordError = ref('')
 const showPassword = ref(false)
 
 function redirectTarget() {
-  return route.query.redirect || '/'
+  return route.query.redirect || '/dashboard'
 }
 
 async function doLogin() {

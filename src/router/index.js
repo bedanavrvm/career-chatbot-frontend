@@ -5,6 +5,8 @@ import Login from '../pages/auth/Login.vue'
 import Register from '../pages/auth/Register.vue'
 import { auth, authReady } from '../lib/firebase'
 import Chat from '../pages/Chat.vue'
+import Onboarding from '../pages/Onboarding.vue'
+import Dashboard from '../pages/Dashboard.vue'
 
 const routes = [
   { path: '/', name: 'home', component: Home },
@@ -12,6 +14,8 @@ const routes = [
   { path: '/register', name: 'register', component: Register },
   { path: '/about', name: 'about', component: About },
   { path: '/chat', name: 'chat', component: Chat },
+  { path: '/onboarding', name: 'onboarding', component: Onboarding, meta: { requiresAuth: true } },
+  { path: '/dashboard', name: 'dashboard', component: Dashboard, meta: { requiresAuth: true } },
 ]
 
 const router = createRouter({
