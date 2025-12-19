@@ -4,12 +4,14 @@ import About from '../pages/About.vue'
 import Login from '../pages/auth/Login.vue'
 import Register from '../pages/auth/Register.vue'
 import { auth, authReady } from '../lib/firebase'
+import Chat from '../pages/Chat.vue'
 
 const routes = [
   { path: '/', name: 'home', component: Home },
   { path: '/login', name: 'login', component: Login },
   { path: '/register', name: 'register', component: Register },
   { path: '/about', name: 'about', component: About },
+  { path: '/chat', name: 'chat', component: Chat },
 ]
 
 const router = createRouter({

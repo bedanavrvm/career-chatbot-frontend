@@ -33,6 +33,9 @@ async function logout() {
         <RouterLink to="/" custom v-slot="{ href, navigate, isExactActive }">
           <a :href="href" @click="navigate" :class="['nav-item', isExactActive && 'nav-item--active']">Home</a>
         </RouterLink>
+        <RouterLink to="/chat" custom v-slot="{ href, navigate, isActive }">
+          <a :href="href" @click="navigate" :class="['nav-item', isActive && 'nav-item--active']">Chat</a>
+        </RouterLink>
         <template v-if="!currentUser">
           <RouterLink to="/register" custom v-slot="{ href, navigate, isActive }">
             <a :href="href" @click="navigate" :class="['nav-item', isActive && 'nav-item--active']">Register</a>

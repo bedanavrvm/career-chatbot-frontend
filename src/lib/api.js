@@ -50,3 +50,30 @@ export async function meProfile(idToken) {
   })
   return parseJson(res)
 }
+
+// Conversations API
+export async function convGetSession(sessionId) {
+  const url = `${base}/api/conversations/sessions/${sessionId}`
+  const res = await fetch(url, { method: 'GET' })
+  return parseJson(res)
+}
+
+export async function convPostMessage(sessionId, { text, idempotencyKey = '', userId = '' }) {
+  const url = `${base}/api/conversations/sessions/${sessionId}/messages`
+  const res = await fetch(url, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ text, idempotency_key: idempotencyKey, user_id: userId }),
+  })
+  return parseJson(res)
+}
+
+export async function convPostProfile({ sessionId, traits = {}, grades = {}, preferences = {}, version = 'v1' }) {
+  const url = `${base}/api/conversations/profile`
+  const res = await fetch(url, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ session_id: sessionId, traits, grades, preferences, version }),
+  })
+  return parseJson(res)
+}
