@@ -1,5 +1,5 @@
 <script setup>
-import { ref, onMounted } from 'vue'
+import { ref, onMounted, computed } from 'vue'
 import { useRouter } from 'vue-router'
 import { auth } from '../lib/firebase'
 import { getIdToken } from 'firebase/auth'
@@ -11,6 +11,7 @@ const loading = ref(false)
 const error = ref('')
 const profile = ref(null)
 const riasec = ref({ scores: {}, top: [], narrative: '' })
+const kcse = ref({ has_grades: false, cluster_score: null, subjects_provided: 0, top4_points: 0, top7_points: 0 })
 
 async function load() {
   try {
@@ -21,6 +22,7 @@ async function load() {
     const data = await onboardingDashboard(token)
     profile.value = data?.profile || {}
     riasec.value = data?.riasec || { scores: {}, top: [], narrative: '' }
+    kcse.value = data?.kcse || { has_grades: false, cluster_score: null, subjects_provided: 0, top4_points: 0, top7_points: 0 }
     if ((profile.value?.status || '') !== 'complete') { router.replace('/onboarding'); return }
   } catch (e) {
     error.value = e?.message || 'Failed to load dashboard'
@@ -30,20 +32,70 @@ async function load() {
 onMounted(load)
 
 function keys() { return Object.keys(riasec.value.scores || {}) }
-function pct(v) { const max = 8; const s = Number(v || 0); return Math.min(100, Math.round((s / max) * 100)) }
+function pct(v) {
+  const vals = Object.values(riasec.value.scores || {})
+    .map((x) => Number(x || 0))
+    .filter((x) => !Number.isNaN(x))
+  const max = Math.max(1, ...(vals.length ? vals : [1]))
+  const s = Number(v || 0)
+  return Math.min(100, Math.round((s / max) * 100))
+}
+
+const displayName = computed(() => {
+  return profile.value?.universal?.fullName || profile.value?.user?.display_name || '—'
+})
+
+const educationLabel = computed(() => {
+  return profile.value?.education_level || '—'
+})
+
+const regionLabel = computed(() => {
+  return profile.value?.universal?.region || '—'
+})
+
+const clusterScoreLabel = computed(() => {
+  const v = kcse.value?.cluster_score
+  if (v == null || Number.isNaN(Number(v))) return '—'
+  return String(v)
+})
 </script>
 
 <template>
   <main class="container-page px-4 py-6">
     <div class="flex items-start justify-between gap-4">
       <div>
-        <h1 class="text-2xl font-bold">Your Dashboard</h1>
-        <p class="text-gray-600">Personalized summary based on your onboarding</p>
+        <h1 class="text-2xl font-bold">Dashboard</h1>
+        <p class="text-gray-600">Welcome, <span class="font-medium text-gray-900">{{ displayName }}</span></p>
       </div>
-      <router-link to="/onboarding" class="btn btn-outline">Update Profile</router-link>
+      <router-link to="/settings/profile" class="btn btn-outline">Update Profile</router-link>
     </div>
 
     <p v-if="error" class="mt-3 text-sm text-red-600">{{ error }}</p>
+
+    <section class="mt-6 grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+      <div class="card p-4">
+        <div class="text-sm text-gray-600">KCSE Cluster Score</div>
+        <div class="mt-2 text-3xl font-bold text-gray-900">{{ clusterScoreLabel }}</div>
+        <div class="mt-2 text-xs text-gray-500" v-if="kcse?.has_grades">Based on {{ kcse.subjects_provided }} subject grades</div>
+        <div class="mt-2 text-xs text-gray-500" v-else>Complete your KCSE grades to compute this</div>
+      </div>
+
+      <div class="card p-4">
+        <div class="text-sm text-gray-600">Top RIASEC</div>
+        <div class="mt-2 text-xl font-semibold text-gray-900">{{ (riasec.top || []).join(' · ') || '—' }}</div>
+        <div class="mt-2 text-xs text-gray-500">{{ riasec.narrative || '' }}</div>
+      </div>
+
+      <div class="card p-4">
+        <div class="text-sm text-gray-600">Education Level</div>
+        <div class="mt-2 text-xl font-semibold text-gray-900">{{ educationLabel }}</div>
+      </div>
+
+      <div class="card p-4">
+        <div class="text-sm text-gray-600">Region</div>
+        <div class="mt-2 text-xl font-semibold text-gray-900">{{ regionLabel }}</div>
+      </div>
+    </section>
 
     <section class="mt-6 grid grid-cols-1 lg:grid-cols-3 gap-6">
       <div class="lg:col-span-2 card p-4">
@@ -66,9 +118,9 @@ function pct(v) { const max = 8; const s = Number(v || 0); return Math.min(100, 
         <h2 class="text-lg font-semibold">Summary</h2>
         <p class="text-gray-700 mt-1">{{ riasec.narrative || 'Complete your onboarding to see your RIASEC summary.' }}</p>
         <div class="mt-4 text-sm text-gray-600 space-y-1">
-          <div><span class="font-medium">Name:</span> {{ profile?.universal?.fullName || profile?.user?.display_name || '—' }}</div>
-          <div><span class="font-medium">Education:</span> {{ profile?.education_level || '—' }}</div>
-          <div><span class="font-medium">Region:</span> {{ profile?.universal?.region || '—' }}</div>
+          <div><span class="font-medium">Name:</span> {{ displayName }}</div>
+          <div><span class="font-medium">Education:</span> {{ educationLabel }}</div>
+          <div><span class="font-medium">Region:</span> {{ regionLabel }}</div>
         </div>
       </div>
     </section>

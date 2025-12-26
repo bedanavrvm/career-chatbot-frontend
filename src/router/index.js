@@ -7,15 +7,17 @@ import { auth, authReady } from '../lib/firebase'
 import Chat from '../pages/Chat.vue'
 import Onboarding from '../pages/Onboarding.vue'
 import Dashboard from '../pages/Dashboard.vue'
+import ProfileSettings from '../pages/ProfileSettings.vue'
 
 const routes = [
   { path: '/', name: 'home', component: Home },
   { path: '/login', name: 'login', component: Login },
   { path: '/register', name: 'register', component: Register },
   { path: '/about', name: 'about', component: About },
-  { path: '/chat', name: 'chat', component: Chat },
+  { path: '/chat', name: 'chat', component: Chat, meta: { requiresAuth: true } },
   { path: '/onboarding', name: 'onboarding', component: Onboarding, meta: { requiresAuth: true } },
   { path: '/dashboard', name: 'dashboard', component: Dashboard, meta: { requiresAuth: true } },
+  { path: '/settings/profile', name: 'profile_settings', component: ProfileSettings, meta: { requiresAuth: true } },
 ]
 
 const router = createRouter({

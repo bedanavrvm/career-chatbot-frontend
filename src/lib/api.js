@@ -52,36 +52,61 @@ export async function meProfile(idToken) {
 }
 
 // Conversations API
-export async function convGetSession(sessionId) {
+export async function convGetSession(idToken, sessionId) {
   const url = `${base}/api/conversations/sessions/${sessionId}`
-  const res = await fetch(url, { method: 'GET' })
-  return parseJson(res)
-}
-
-export async function convPostMessage(sessionId, { text, idempotencyKey = '', userId = '' }) {
-  const url = `${base}/api/conversations/sessions/${sessionId}/messages`
   const res = await fetch(url, {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ text, idempotency_key: idempotencyKey, user_id: userId }),
+    method: 'GET',
+    headers: { Authorization: `Bearer ${idToken}` },
   })
   return parseJson(res)
 }
 
-export async function convPostProfile({ sessionId, traits = {}, grades = {}, preferences = {}, version = 'v1' }) {
+export async function convPostMessage(idToken, sessionId, { text, idempotencyKey = '', nlpProvider = '' }) {
+  const url = `${base}/api/conversations/sessions/${sessionId}/messages`
+  const payload = { text, idempotency_key: idempotencyKey }
+  if (nlpProvider) payload.nlp_provider = nlpProvider
+  const res = await fetch(url, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      Authorization: `Bearer ${idToken}`,
+    },
+    body: JSON.stringify(payload),
+  })
+  return parseJson(res)
+}
+
+export async function convPostProfile(idToken, { sessionId, traits = {}, grades = {}, preferences = {}, version = 'v1' }) {
   const url = `${base}/api/conversations/profile`
   const res = await fetch(url, {
     method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
+    headers: {
+      'Content-Type': 'application/json',
+      Authorization: `Bearer ${idToken}`,
+    },
     body: JSON.stringify({ session_id: sessionId, traits, grades, preferences, version }),
   })
   return parseJson(res)
 }
 
-export async function convDeleteSession(sessionId) {
+export async function convDeleteSession(idToken, sessionId) {
   const url = `${base}/api/conversations/sessions/${sessionId}/delete`
-  const res = await fetch(url, { method: 'POST' })
+  const res = await fetch(url, {
+    method: 'POST',
+    headers: { Authorization: `Bearer ${idToken}` },
+  })
   // delete returns 204; parseJson will return {} on empty body
+  return parseJson(res)
+}
+
+export async function convGetRecommendations(idToken, sessionId, { k = 10 } = {}) {
+  const qs = new URLSearchParams()
+  if (k) qs.set('k', String(k))
+  const url = `${base}/api/conversations/sessions/${sessionId}/recommendations${qs.toString() ? `?${qs}` : ''}`
+  const res = await fetch(url, {
+    method: 'GET',
+    headers: { Authorization: `Bearer ${idToken}` },
+  })
   return parseJson(res)
 }
 
