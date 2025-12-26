@@ -1,6 +1,7 @@
 <script setup>
 import { ref, reactive, onMounted, computed } from 'vue'
 import { useRouter } from 'vue-router'
+import { ArrowLeft } from 'lucide-vue-next'
 import { auth } from '../lib/firebase'
 import { getIdToken } from 'firebase/auth'
 import { onboardingMe, onboardingSave } from '../lib/api'
@@ -288,7 +289,16 @@ onMounted(async () => {
         <h1 class="text-2xl font-bold">Profile settings</h1>
         <p class="text-gray-600">Edit your profile without the step-by-step wizard</p>
       </div>
-      <button class="btn btn-outline" @click="router.back()">Back</button>
+      <button
+        class="btn btn-outline btn-md"
+        type="button"
+        title="Back"
+        aria-label="Back"
+        @click="router.back()"
+      >
+        <ArrowLeft class="h-4 w-4" />
+        <span class="sr-only">Back</span>
+      </button>
     </div>
 
     <p v-if="error" class="mt-3 text-sm text-red-600">{{ error }}</p>

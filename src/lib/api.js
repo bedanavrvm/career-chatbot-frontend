@@ -110,6 +110,18 @@ export async function convGetRecommendations(idToken, sessionId, { k = 10 } = {}
   return parseJson(res)
 }
 
+// Catalog API
+export async function catalogGetProgram(idToken, programId) {
+  const url = `${base}/api/catalog/programs/${programId}`
+  const headers = {}
+  if (idToken) headers.Authorization = `Bearer ${idToken}`
+  const res = await fetch(url, {
+    method: 'GET',
+    headers,
+  })
+  return parseJson(res)
+}
+
 // Onboarding API
 export async function onboardingMe(idToken) {
   const url = `${base}/api/auth/onboarding/me/`

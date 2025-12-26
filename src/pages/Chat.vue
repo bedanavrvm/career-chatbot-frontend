@@ -2,6 +2,7 @@
 import { ref, computed, onMounted, nextTick, watch } from 'vue'
 import { useRouter } from 'vue-router'
 import { convGetSession, convPostMessage, convDeleteSession, convGetRecommendations } from '../lib/api'
+import { Plus, Trash2, RefreshCw, Send } from 'lucide-vue-next'
 import { auth } from '../lib/firebase'
 import { getIdToken } from 'firebase/auth'
 
@@ -32,6 +33,12 @@ async function clearSession () {
 }
 
 const router = useRouter()
+
+function openProgramDetails (r) {
+  const id = r?.program_id
+  if (!id) return
+  router.push({ name: 'program_details', params: { id: String(id) } })
+}
 const idToken = ref('')
 const storageKey = computed(() => {
   const uid = auth.currentUser?.uid || ''
@@ -216,8 +223,8 @@ onMounted(async () => {
 </script>
 
 <template>
-  <main class="container-page py-6">
-    <div class="mx-auto max-w-6xl">
+  <main class="py-6 px-4 sm:px-6 lg:px-8">
+    <div class="mx-auto max-w-screen-2xl">
       <h1 class="text-2xl font-bold text-gray-900">Conversation</h1>
       <div class="flex flex-col md:flex-row md:items-center md:justify-between gap-2 mt-1">
         <p class="text-sm text-gray-600">
@@ -233,13 +240,33 @@ onMounted(async () => {
             <input type="checkbox" v-model="useGemini" class="h-4 w-4" />
             <span class="text-gray-900">Gemini</span>
           </label>
-          <button class="btn btn-outline btn-sm" @click="newSession">New session</button>
-          <button class="btn btn-outline btn-sm" @click="clearSession">Clear session</button>
+          <button
+            class="btn btn-outline btn-sm gap-2 transition-all hover:bg-gray-50 hover:shadow-sm active:scale-[0.99]"
+            type="button"
+            title="New session"
+            aria-label="New session"
+            @click="newSession"
+          >
+            <Plus class="h-4 w-4" />
+            <span class="hidden sm:inline">New session</span>
+            <span class="sr-only sm:hidden">New session</span>
+          </button>
+          <button
+            class="btn btn-outline btn-sm gap-2 transition-all hover:bg-red-50 hover:text-red-700 hover:border-red-200 hover:shadow-sm active:scale-[0.99]"
+            type="button"
+            title="Clear session"
+            aria-label="Clear session"
+            @click="clearSession"
+          >
+            <Trash2 class="h-4 w-4" />
+            <span class="hidden sm:inline">Clear session</span>
+            <span class="sr-only sm:hidden">Clear session</span>
+          </button>
         </div>
       </div>
 
-      <div class="mt-5 grid grid-cols-1 lg:grid-cols-3 gap-6">
-        <section class="lg:col-span-2">
+      <div class="mt-5 grid grid-cols-1 lg:grid-cols-5 gap-8">
+        <section class="lg:col-span-3">
           <div class="border rounded-xl p-4 bg-white/60 flex flex-col h-[72vh]">
             <div ref="scroller" class="flex-1 overflow-y-auto pr-2">
               <div v-for="(m, idx) in conversation.messages" :key="idx" class="mb-3">
@@ -250,7 +277,7 @@ onMounted(async () => {
                     <button
                       v-else
                       type="button"
-                      class="inline-flex items-center font-mono text-xs px-1 rounded bg-white/60 border border-gray-200 hover:bg-white"
+                      class="inline-flex items-center font-mono text-xs px-1 rounded bg-white/60 border border-gray-200 transition-all hover:bg-white hover:shadow-sm active:scale-95"
                       @click="selectCitation(seg.value)"
                     >[{{ seg.value }}]</button>
                   </template>
@@ -260,7 +287,17 @@ onMounted(async () => {
 
             <form class="mt-4 flex gap-2" @submit.prevent="sendMessage">
               <input v-model="input" type="text" class="input flex-1" placeholder="Type a message... e.g., Math A-, English B+" />
-              <button class="btn btn-primary" :disabled="sending">{{ sending ? 'Sending…' : 'Send' }}</button>
+              <button
+                class="btn btn-primary gap-2 transition-all hover:shadow-sm active:scale-[0.99] disabled:opacity-60"
+                type="submit"
+                :disabled="sending"
+                title="Send"
+                aria-label="Send"
+              >
+                <Send class="h-4 w-4" />
+                <span class="hidden sm:inline">{{ sending ? 'Sending…' : 'Send' }}</span>
+                <span class="sr-only sm:hidden">{{ sending ? 'Sending…' : 'Send' }}</span>
+              </button>
             </form>
 
             <p v-if="error" class="text-sm text-red-600 mt-2">{{ error }}</p>
@@ -271,18 +308,36 @@ onMounted(async () => {
           </div>
         </section>
 
-        <aside class="lg:col-span-1">
+        <aside class="lg:col-span-2">
           <div class="border rounded-xl p-4 bg-white/60 h-[72vh] overflow-y-auto lg:sticky lg:top-24">
             <div class="flex items-center justify-between">
               <h2 class="text-lg font-semibold text-gray-900">Recommendations</h2>
-              <button class="btn btn-outline btn-sm" @click="loadRecommendations">Refresh</button>
+              <button
+                class="btn btn-outline btn-sm gap-2 transition-all hover:bg-gray-50 hover:shadow-sm active:scale-[0.99]"
+                type="button"
+                title="Refresh"
+                aria-label="Refresh"
+                @click="loadRecommendations"
+              >
+                <RefreshCw class="h-4 w-4" />
+                <span class="hidden sm:inline">Refresh</span>
+                <span class="sr-only sm:hidden">Refresh</span>
+              </button>
             </div>
             <p v-if="recsError" class="text-sm text-red-600 mt-2">{{ recsError }}</p>
             <div v-if="!recs.length" class="text-sm text-gray-600 mt-2">
               No recommendations yet. Share your grades and interests to personalize results.
             </div>
             <div v-else class="mt-3 grid grid-cols-1 gap-3">
-              <div v-for="r in recs" :key="r.program_id || r.program_code || r.program_name" class="card p-4">
+              <div
+                v-for="r in recs"
+                :key="r.program_id || r.program_code || r.program_name"
+                :class="['card p-4', r.program_id ? 'cursor-pointer transition-all hover:bg-white/70 hover:shadow-md hover:-translate-y-0.5 active:translate-y-0 focus:outline-none focus:ring-2 focus:ring-brand/30' : '']"
+                :role="r.program_id ? 'button' : null"
+                :tabindex="r.program_id ? 0 : -1"
+                @click="openProgramDetails(r)"
+                @keydown.enter="openProgramDetails(r)"
+              >
                 <div class="flex items-start justify-between gap-4">
                   <div>
                     <div class="font-semibold text-gray-900">{{ r.program_name }}</div>

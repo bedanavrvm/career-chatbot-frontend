@@ -1,6 +1,7 @@
 <script setup>
 import { ref, onMounted, computed } from 'vue'
 import { useRouter } from 'vue-router'
+import { Gauge, Brain, GraduationCap, MapPin, UserRoundCog } from 'lucide-vue-next'
 import { auth } from '../lib/firebase'
 import { getIdToken } from 'firebase/auth'
 import { onboardingDashboard } from '../lib/api'
@@ -58,6 +59,14 @@ const clusterScoreLabel = computed(() => {
   if (v == null || Number.isNaN(Number(v))) return '—'
   return String(v)
 })
+
+function openClusterScoreDetails () {
+  router.push({ name: 'cluster_score_details' })
+}
+
+function openRiasecDetails () {
+  router.push({ name: 'riasec_details' })
+}
 </script>
 
 <template>
@@ -67,32 +76,65 @@ const clusterScoreLabel = computed(() => {
         <h1 class="text-2xl font-bold">Dashboard</h1>
         <p class="text-gray-600">Welcome, <span class="font-medium text-gray-900">{{ displayName }}</span></p>
       </div>
-      <router-link to="/settings/profile" class="btn btn-outline">Update Profile</router-link>
+      <router-link
+        to="/settings/profile"
+        class="btn btn-outline btn-md gap-2"
+        title="Update profile"
+        aria-label="Update profile"
+      >
+        <UserRoundCog class="h-4 w-4" />
+        <span class="hidden sm:inline">Update Profile</span>
+        <span class="sr-only sm:hidden">Update Profile</span>
+      </router-link>
     </div>
 
     <p v-if="error" class="mt-3 text-sm text-red-600">{{ error }}</p>
 
     <section class="mt-6 grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-      <div class="card p-4">
-        <div class="text-sm text-gray-600">KCSE Cluster Score</div>
+      <div
+        class="card p-4 cursor-pointer hover:bg-white/70 transition"
+        role="button"
+        tabindex="0"
+        @click="openClusterScoreDetails"
+        @keydown.enter="openClusterScoreDetails"
+      >
+        <div class="flex items-center gap-2 text-sm text-gray-600" title="KCSE Weighted Score (Generic)">
+          <Gauge class="h-4 w-4" />
+          <span>KCSE Weighted Score (Generic)</span>
+        </div>
         <div class="mt-2 text-3xl font-bold text-gray-900">{{ clusterScoreLabel }}</div>
         <div class="mt-2 text-xs text-gray-500" v-if="kcse?.has_grades">Based on {{ kcse.subjects_provided }} subject grades</div>
         <div class="mt-2 text-xs text-gray-500" v-else>Complete your KCSE grades to compute this</div>
       </div>
 
-      <div class="card p-4">
-        <div class="text-sm text-gray-600">Top RIASEC</div>
+      <div
+        class="card p-4 cursor-pointer hover:bg-white/70 transition"
+        role="button"
+        tabindex="0"
+        @click="openRiasecDetails"
+        @keydown.enter="openRiasecDetails"
+      >
+        <div class="flex items-center gap-2 text-sm text-gray-600" title="Top RIASEC">
+          <Brain class="h-4 w-4" />
+          <span>Top RIASEC</span>
+        </div>
         <div class="mt-2 text-xl font-semibold text-gray-900">{{ (riasec.top || []).join(' · ') || '—' }}</div>
         <div class="mt-2 text-xs text-gray-500">{{ riasec.narrative || '' }}</div>
       </div>
 
       <div class="card p-4">
-        <div class="text-sm text-gray-600">Education Level</div>
+        <div class="flex items-center gap-2 text-sm text-gray-600" title="Education Level">
+          <GraduationCap class="h-4 w-4" />
+          <span>Education Level</span>
+        </div>
         <div class="mt-2 text-xl font-semibold text-gray-900">{{ educationLabel }}</div>
       </div>
 
       <div class="card p-4">
-        <div class="text-sm text-gray-600">Region</div>
+        <div class="flex items-center gap-2 text-sm text-gray-600" title="Region">
+          <MapPin class="h-4 w-4" />
+          <span>Region</span>
+        </div>
         <div class="mt-2 text-xl font-semibold text-gray-900">{{ regionLabel }}</div>
       </div>
     </section>

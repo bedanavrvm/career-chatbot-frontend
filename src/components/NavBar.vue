@@ -1,6 +1,7 @@
 <script setup>
 import { ref, computed } from 'vue'
 import { useRouter } from 'vue-router'
+import { Home, MessageCircle, LayoutDashboard, User, UserPlus, LogIn, LogOut } from 'lucide-vue-next'
 import { auth } from '../lib/firebase'
 import { onAuthStateChanged, signOut } from 'firebase/auth'
 
@@ -31,30 +32,99 @@ async function logout() {
       </div>
       <div class="flex items-center gap-4">
         <RouterLink to="/" custom v-slot="{ href, navigate, isExactActive }">
-          <a :href="href" @click="navigate" :class="['nav-item', isExactActive && 'nav-item--active']">Home</a>
+          <a
+            :href="href"
+            @click="navigate"
+            :class="['nav-item', 'gap-2', isExactActive && 'nav-item--active']"
+            title="Home"
+            aria-label="Home"
+          >
+            <Home class="h-4 w-4" />
+            <span class="hidden sm:inline">Home</span>
+            <span class="sr-only sm:hidden">Home</span>
+          </a>
         </RouterLink>
         <RouterLink to="/chat" custom v-slot="{ href, navigate, isActive }">
-          <a :href="href" @click="navigate" :class="['nav-item', isActive && 'nav-item--active']">Chat</a>
+          <a
+            :href="href"
+            @click="navigate"
+            :class="['nav-item', 'gap-2', isActive && 'nav-item--active']"
+            title="Chat"
+            aria-label="Chat"
+          >
+            <MessageCircle class="h-4 w-4" />
+            <span class="hidden sm:inline">Chat</span>
+            <span class="sr-only sm:hidden">Chat</span>
+          </a>
         </RouterLink>
         <template v-if="currentUser">
           <RouterLink to="/dashboard" custom v-slot="{ href, navigate, isActive }">
-            <a :href="href" @click="navigate" :class="['nav-item', isActive && 'nav-item--active']">Dashboard</a>
+            <a
+              :href="href"
+              @click="navigate"
+              :class="['nav-item', 'gap-2', isActive && 'nav-item--active']"
+              title="Dashboard"
+              aria-label="Dashboard"
+            >
+              <LayoutDashboard class="h-4 w-4" />
+              <span class="hidden sm:inline">Dashboard</span>
+              <span class="sr-only sm:hidden">Dashboard</span>
+            </a>
           </RouterLink>
           <RouterLink to="/settings/profile" custom v-slot="{ href, navigate, isActive }">
-            <a :href="href" @click="navigate" :class="['nav-item', isActive && 'nav-item--active']">Profile</a>
+            <a
+              :href="href"
+              @click="navigate"
+              :class="['nav-item', 'gap-2', isActive && 'nav-item--active']"
+              title="Profile"
+              aria-label="Profile"
+            >
+              <User class="h-4 w-4" />
+              <span class="hidden sm:inline">Profile</span>
+              <span class="sr-only sm:hidden">Profile</span>
+            </a>
           </RouterLink>
         </template>
         <template v-if="!currentUser">
           <RouterLink to="/register" custom v-slot="{ href, navigate, isActive }">
-            <a :href="href" @click="navigate" :class="['nav-item', isActive && 'nav-item--active']">Register</a>
+            <a
+              :href="href"
+              @click="navigate"
+              :class="['nav-item', 'gap-2', isActive && 'nav-item--active']"
+              title="Register"
+              aria-label="Register"
+            >
+              <UserPlus class="h-4 w-4" />
+              <span class="hidden sm:inline">Register</span>
+              <span class="sr-only sm:hidden">Register</span>
+            </a>
           </RouterLink>
           <RouterLink to="/login" custom v-slot="{ href, navigate, isActive }">
-            <a :href="href" @click="navigate" :class="['nav-item', isActive && 'nav-item--active']">Login</a>
+            <a
+              :href="href"
+              @click="navigate"
+              :class="['nav-item', 'gap-2', isActive && 'nav-item--active']"
+              title="Login"
+              aria-label="Login"
+            >
+              <LogIn class="h-4 w-4" />
+              <span class="hidden sm:inline">Login</span>
+              <span class="sr-only sm:hidden">Login</span>
+            </a>
           </RouterLink>
         </template>
         <template v-else>
           <span class="hidden sm:block text-sm text-gray-600">{{ userEmail }}</span>
-          <button @click="logout" class="nav-cta btn btn-primary btn-md">Sign out</button>
+          <button
+            @click="logout"
+            class="nav-cta btn btn-primary btn-md gap-2"
+            title="Sign out"
+            aria-label="Sign out"
+          >
+            <LogOut class="h-4 w-4" />
+            <span class="hidden sm:inline">Sign out</span>
+            <span class="sr-only sm:hidden">Sign out</span>
+          </button>
         </template>
       </div>
     </nav>
