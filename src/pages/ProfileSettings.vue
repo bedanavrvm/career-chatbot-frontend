@@ -393,7 +393,7 @@ onMounted(async () => {
                 v-for="s in hsAvailableSubjects"
                 :key="s.code"
                 type="button"
-                class="inline-flex items-center rounded-full border border-gray-200 bg-white px-3 py-1 text-sm hover:bg-gray-50"
+                class="chip-btn"
                 draggable="true"
                 @dragstart="(e) => hsOnDragStart(e, s.code)"
                 @click="hsAddSubject(s.code)"
@@ -422,12 +422,12 @@ onMounted(async () => {
 
                   <button
                     type="button"
-                    class="px-3 py-2 rounded-lg border text-sm"
+                    class="px-3 py-2 rounded-lg border text-sm transition-all hover:shadow-sm active:scale-[0.99]"
                     :class="hsIsFavorite(code) ? 'border-brand bg-brand text-white' : 'border-gray-200 bg-white text-gray-700'"
                     @click="hsToggleFavorite(code)"
                   >Favourite</button>
 
-                  <button type="button" class="px-3 py-2 rounded-lg border border-gray-200 bg-white text-sm" @click="hsRemoveSubject(code)">Remove</button>
+                  <button type="button" class="px-3 py-2 rounded-lg border border-gray-200 bg-white text-sm transition-all hover:bg-gray-50 hover:shadow-sm active:scale-[0.99]" @click="hsRemoveSubject(code)">Remove</button>
                 </div>
               </div>
             </div>

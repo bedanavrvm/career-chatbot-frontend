@@ -11,6 +11,8 @@ import ProfileSettings from '../pages/ProfileSettings.vue'
 import ProgramDetails from '../pages/ProgramDetails.vue'
 import ClusterScoreDetails from '../pages/ClusterScoreDetails.vue'
 import RiasecDetails from '../pages/RiasecDetails.vue'
+import Programs from '../pages/Programs.vue'
+import Institutions from '../pages/Institutions.vue'
 
 const routes = [
   { path: '/', name: 'home', component: Home },
@@ -18,6 +20,8 @@ const routes = [
   { path: '/register', name: 'register', component: Register },
   { path: '/about', name: 'about', component: About },
   { path: '/chat', name: 'chat', component: Chat, meta: { requiresAuth: true } },
+  { path: '/programmes', name: 'programs', component: Programs, meta: { requiresAuth: true } },
+  { path: '/institutions', name: 'institutions', component: Institutions, meta: { requiresAuth: true } },
   { path: '/programs/:id', name: 'program_details', component: ProgramDetails, meta: { requiresAuth: true } },
   { path: '/onboarding', name: 'onboarding', component: Onboarding, meta: { requiresAuth: true } },
   { path: '/dashboard', name: 'dashboard', component: Dashboard, meta: { requiresAuth: true } },

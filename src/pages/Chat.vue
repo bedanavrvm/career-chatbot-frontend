@@ -234,14 +234,15 @@ onMounted(async () => {
           · LLM: <span class="font-semibold">{{ mode }}</span>
           <span v-if="modeError" class="text-red-600"> (provider error: {{ modeError }})</span>
         </p>
-        <div class="flex gap-2">
-          <label class="inline-flex items-center gap-2 text-sm text-gray-700 border rounded-lg px-3 py-2 bg-white/70">
-            <span class="text-gray-600">Local</span>
+        <div class="flex flex-wrap items-center justify-end gap-2">
+          <label class="inline-flex items-center gap-2 text-sm text-gray-700 border rounded-lg bg-white/70 px-2 py-1.5 md:px-3 md:py-2 shrink-0">
+            <span class="text-gray-600 hidden sm:inline">Local</span>
             <input type="checkbox" v-model="useGemini" class="h-4 w-4" />
-            <span class="text-gray-900">Gemini</span>
+            <span class="text-gray-900 hidden sm:inline">Gemini</span>
+            <span class="sr-only sm:hidden">Toggle Gemini</span>
           </label>
           <button
-            class="btn btn-outline btn-sm gap-2 transition-all hover:bg-gray-50 hover:shadow-sm active:scale-[0.99]"
+            class="btn btn-outline btn-sm gap-2 transition-all hover:bg-gray-50 hover:shadow-sm active:scale-[0.99] shrink-0"
             type="button"
             title="New session"
             aria-label="New session"
@@ -252,7 +253,7 @@ onMounted(async () => {
             <span class="sr-only sm:hidden">New session</span>
           </button>
           <button
-            class="btn btn-outline btn-sm gap-2 transition-all hover:bg-red-50 hover:text-red-700 hover:border-red-200 hover:shadow-sm active:scale-[0.99]"
+            class="btn btn-outline btn-sm gap-2 transition-all hover:bg-red-50 hover:text-red-700 hover:border-red-200 hover:shadow-sm active:scale-[0.99] shrink-0"
             type="button"
             title="Clear session"
             aria-label="Clear session"
@@ -288,7 +289,7 @@ onMounted(async () => {
             <form class="mt-4 flex gap-2" @submit.prevent="sendMessage">
               <input v-model="input" type="text" class="input flex-1" placeholder="Type a message... e.g., Math A-, English B+" />
               <button
-                class="btn btn-primary gap-2 transition-all hover:shadow-sm active:scale-[0.99] disabled:opacity-60"
+                class="btn btn-primary rounded-2xl px-4 py-3 min-w-12 gap-2 shrink-0 transition-all hover:shadow-sm active:scale-[0.99] disabled:opacity-60"
                 type="submit"
                 :disabled="sending"
                 title="Send"
@@ -332,7 +333,7 @@ onMounted(async () => {
               <div
                 v-for="r in recs"
                 :key="r.program_id || r.program_code || r.program_name"
-                :class="['card p-4', r.program_id ? 'cursor-pointer transition-all hover:bg-white/70 hover:shadow-md hover:-translate-y-0.5 active:translate-y-0 focus:outline-none focus:ring-2 focus:ring-brand/30' : '']"
+                :class="['card p-4', r.program_id ? 'clickable-card' : '']"
                 :role="r.program_id ? 'button' : null"
                 :tabindex="r.program_id ? 0 : -1"
                 @click="openProgramDetails(r)"

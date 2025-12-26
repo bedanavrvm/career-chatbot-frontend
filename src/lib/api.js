@@ -153,3 +153,26 @@ export async function onboardingDashboard(idToken) {
   })
   return parseJson(res)
 }
+
+export async function etlGetPrograms(params = {}) {
+  const qs = new URLSearchParams()
+  if (params.q) qs.set('q', String(params.q))
+  if (params.field) qs.set('field', String(params.field))
+  if (params.level) qs.set('level', String(params.level))
+  if (params.region) qs.set('region', String(params.region))
+  if (params.page) qs.set('page', String(params.page))
+  if (params.page_size) qs.set('page_size', String(params.page_size))
+  const url = `${base}/api/etl/programs${qs.toString() ? `?${qs}` : ''}`
+  const res = await fetch(url, { method: 'GET' })
+  return parseJson(res)
+}
+
+export async function etlGetInstitutions(params = {}) {
+  const qs = new URLSearchParams()
+  if (params.q) qs.set('q', String(params.q))
+  if (params.region) qs.set('region', String(params.region))
+  if (params.county) qs.set('county', String(params.county))
+  const url = `${base}/api/etl/institutions${qs.toString() ? `?${qs}` : ''}`
+  const res = await fetch(url, { method: 'GET' })
+  return parseJson(res)
+}

@@ -19,12 +19,16 @@
   .card-elevated { @apply rounded-2xl border bg-white; box-shadow: var(--shadow-elevated); }
   .glass { @apply bg-white/70 backdrop-blur supports-[backdrop-filter]:bg-white/60; }
 
-  .btn { @apply inline-flex items-center justify-center font-medium rounded-xl transition-colors; }
+  .btn { @apply inline-flex items-center justify-center font-medium rounded-xl transition-all hover:shadow-sm active:scale-[0.99] focus:outline-none focus:ring-4 focus:ring-brand/20; }
   .btn-primary { @apply btn text-white bg-brand hover:bg-brand-dark; }
   .btn-outline { @apply btn border text-gray-800 hover:bg-gray-50; }
   .btn-ghost { @apply btn text-gray-700 hover:bg-gray-100; }
   .btn-lg { @apply px-5 py-3; }
   .btn-md { @apply px-4 py-2.5; }
+  .btn-sm { @apply px-3 py-2 text-sm rounded-lg; }
+
+  .clickable-card { @apply cursor-pointer transition-all hover:bg-white/70 hover:shadow-md hover:-translate-y-0.5 active:translate-y-0 focus:outline-none focus:ring-2 focus:ring-brand/30; }
+  .chip-btn { @apply inline-flex items-center rounded-full border border-gray-200 bg-white px-3 py-1 text-sm transition-all hover:bg-gray-50 hover:shadow-sm active:scale-95 focus:outline-none focus:ring-2 focus:ring-brand/20; }
 
   .input { @apply block w-full rounded-2xl border-2 border-gray-300 bg-white px-4 py-3 text-gray-900 placeholder:text-gray-400 shadow-inner focus:outline-none focus:border-brand focus:ring-4 focus:ring-brand/20 transition; }
   .input-md { @apply px-4 py-2.5 text-[0.95rem]; }
@@ -45,7 +49,7 @@
 
   .nav-link { @apply text-sm text-gray-600 hover:text-gray-900; }
   .nav-cta { @apply text-sm font-medium text-brand hover:text-brand-dark; }
-  .nav-item { @apply inline-flex items-center justify-center h-9 rounded-full px-4 text-sm font-medium border transition-colors border-transparent text-gray-600 hover:text-gray-900 hover:bg-gray-50; }
+  .nav-item { @apply inline-flex items-center justify-center h-9 rounded-full px-4 text-sm font-medium border transition-all border-transparent text-gray-600 hover:text-gray-900 hover:bg-gray-50 hover:shadow-sm active:scale-95 focus:outline-none focus:ring-4 focus:ring-brand/20; }
   .nav-item--active { @apply border-gray-200 text-gray-900 bg-white; }
 
   .hero { @apply relative overflow-hidden; }

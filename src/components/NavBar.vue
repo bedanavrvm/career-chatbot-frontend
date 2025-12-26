@@ -1,9 +1,11 @@
 <script setup>
 import { ref, computed } from 'vue'
 import { useRouter } from 'vue-router'
-import { Home, MessageCircle, LayoutDashboard, User, UserPlus, LogIn, LogOut } from 'lucide-vue-next'
+import { Menu, Home, MessageCircle, LayoutDashboard, User, UserPlus, LogIn, LogOut } from 'lucide-vue-next'
 import { auth } from '../lib/firebase'
 import { onAuthStateChanged, signOut } from 'firebase/auth'
+
+const emit = defineEmits(['toggle-sidebar'])
 
 const router = useRouter()
 const currentUser = ref(null)
@@ -19,18 +21,31 @@ async function logout() {
   await signOut(auth)
   router.push('/login')
 }
+
+function toggleSidebar () {
+  emit('toggle-sidebar')
+}
 </script>
 
 <template>
   <header class="glass border-b sticky top-0 z-10">
     <nav class="container-page h-16 flex items-center justify-between">
       <div class="flex items-center gap-3">
+        <button
+          class="btn btn-ghost btn-sm lg:hidden"
+          type="button"
+          title="Open menu"
+          aria-label="Open menu"
+          @click="toggleSidebar"
+        >
+          <Menu class="h-4 w-4" />
+        </button>
         <RouterLink to="/" class="flex items-center gap-3">
           <div class="h-9 w-9 rounded-lg bg-brand flex items-center justify-center text-white font-bold shadow-soft">AI</div>
-          <span class="text-lg font-semibold tracking-tight">{{ appName }}</span>
+          <span class="text-lg font-semibold tracking-tight hidden sm:inline">{{ appName }}</span>
         </RouterLink>
       </div>
-      <div class="flex items-center gap-4">
+      <div class="flex flex-wrap items-center justify-end gap-2 sm:gap-4">
         <RouterLink to="/" custom v-slot="{ href, navigate, isExactActive }">
           <a
             :href="href"
@@ -117,7 +132,7 @@ async function logout() {
           <span class="hidden sm:block text-sm text-gray-600">{{ userEmail }}</span>
           <button
             @click="logout"
-            class="nav-cta btn btn-primary btn-md gap-2"
+            class="btn btn-primary btn-sm sm:btn-md gap-2 shrink-0"
             title="Sign out"
             aria-label="Sign out"
           >

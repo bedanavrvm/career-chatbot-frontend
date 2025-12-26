@@ -91,52 +91,52 @@ function openRiasecDetails () {
     <p v-if="error" class="mt-3 text-sm text-red-600">{{ error }}</p>
 
     <section class="mt-6 grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-      <div
-        class="card p-4 cursor-pointer hover:bg-white/70 transition"
-        role="button"
-        tabindex="0"
-        @click="openClusterScoreDetails"
-        @keydown.enter="openClusterScoreDetails"
-      >
-        <div class="flex items-center gap-2 text-sm text-gray-600" title="KCSE Weighted Score (Generic)">
-          <Gauge class="h-4 w-4" />
-          <span>KCSE Weighted Score (Generic)</span>
-        </div>
-        <div class="mt-2 text-3xl font-bold text-gray-900">{{ clusterScoreLabel }}</div>
-        <div class="mt-2 text-xs text-gray-500" v-if="kcse?.has_grades">Based on {{ kcse.subjects_provided }} subject grades</div>
-        <div class="mt-2 text-xs text-gray-500" v-else>Complete your KCSE grades to compute this</div>
-      </div>
+          <div
+            class="card p-4 clickable-card"
+            role="button"
+            tabindex="0"
+            @click="openClusterScoreDetails"
+            @keydown.enter="openClusterScoreDetails"
+          >
+            <div class="flex items-center gap-2 text-sm text-gray-600" title="KCSE Weighted Score (Generic)">
+              <Gauge class="h-4 w-4" />
+              <span>KCSE Weighted Score (Generic)</span>
+            </div>
+            <div class="mt-2 text-3xl font-bold text-gray-900">{{ clusterScoreLabel }}</div>
+            <div class="mt-2 text-xs text-gray-500" v-if="kcse?.has_grades">Based on {{ kcse.subjects_provided }} subject grades</div>
+            <div class="mt-2 text-xs text-gray-500" v-else>Complete your KCSE grades to compute this</div>
+          </div>
 
-      <div
-        class="card p-4 cursor-pointer hover:bg-white/70 transition"
-        role="button"
-        tabindex="0"
-        @click="openRiasecDetails"
-        @keydown.enter="openRiasecDetails"
-      >
-        <div class="flex items-center gap-2 text-sm text-gray-600" title="Top RIASEC">
-          <Brain class="h-4 w-4" />
-          <span>Top RIASEC</span>
-        </div>
-        <div class="mt-2 text-xl font-semibold text-gray-900">{{ (riasec.top || []).join(' · ') || '—' }}</div>
-        <div class="mt-2 text-xs text-gray-500">{{ riasec.narrative || '' }}</div>
-      </div>
+          <div
+            class="card p-4 clickable-card"
+            role="button"
+            tabindex="0"
+            @click="openRiasecDetails"
+            @keydown.enter="openRiasecDetails"
+          >
+            <div class="flex items-center gap-2 text-sm text-gray-600" title="Top RIASEC">
+              <Brain class="h-4 w-4" />
+              <span>Top RIASEC</span>
+            </div>
+            <div class="mt-2 text-xl font-semibold text-gray-900">{{ (riasec.top || []).join(' · ') || '—' }}</div>
+            <div class="mt-2 text-xs text-gray-500">{{ riasec.narrative || '' }}</div>
+          </div>
 
-      <div class="card p-4">
-        <div class="flex items-center gap-2 text-sm text-gray-600" title="Education Level">
-          <GraduationCap class="h-4 w-4" />
-          <span>Education Level</span>
-        </div>
-        <div class="mt-2 text-xl font-semibold text-gray-900">{{ educationLabel }}</div>
-      </div>
+          <div class="card p-4">
+            <div class="flex items-center gap-2 text-sm text-gray-600" title="Education Level">
+              <GraduationCap class="h-4 w-4" />
+              <span>Education Level</span>
+            </div>
+            <div class="mt-2 text-xl font-semibold text-gray-900">{{ educationLabel }}</div>
+          </div>
 
-      <div class="card p-4">
-        <div class="flex items-center gap-2 text-sm text-gray-600" title="Region">
-          <MapPin class="h-4 w-4" />
-          <span>Region</span>
-        </div>
-        <div class="mt-2 text-xl font-semibold text-gray-900">{{ regionLabel }}</div>
-      </div>
+          <div class="card p-4">
+            <div class="flex items-center gap-2 text-sm text-gray-600" title="Region">
+              <MapPin class="h-4 w-4" />
+              <span>Region</span>
+            </div>
+            <div class="mt-2 text-xl font-semibold text-gray-900">{{ regionLabel }}</div>
+          </div>
     </section>
 
     <section class="mt-6 grid grid-cols-1 lg:grid-cols-3 gap-6">
