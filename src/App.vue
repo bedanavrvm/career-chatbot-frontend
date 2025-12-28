@@ -39,7 +39,7 @@ watch(
 
 <template>
   <NavBar :showSidebarToggle="showSidebar" @toggle-sidebar="sidebarOpen = true" />
-  <div class="flex min-h-[calc(100vh-4rem)]">
+  <div class="flex h-[calc(100vh-4rem)]">
     <AppSidebar
       v-if="showSidebar"
       :open="sidebarOpen"
@@ -47,7 +47,7 @@ watch(
       @close="sidebarOpen = false"
       @toggle-collapsed="sidebarCollapsed = !sidebarCollapsed"
     />
-    <div class="min-w-0 flex-1 overflow-x-hidden">
+    <div class="min-w-0 flex-1 overflow-y-auto overflow-x-hidden">
       <RouterView />
     </div>
   </div>

@@ -16,6 +16,7 @@ const pageSize = ref(20)
 
 const searchDelayMs = 250
 let searchTimer = null
+let activeRequestId = 0
 
 const data = ref({ count: 0, page: 1, page_size: 20, results: [] })
 
@@ -25,30 +26,36 @@ const totalPages = computed(() => {
   return Math.max(1, Math.ceil(c / Math.max(1, ps)))
 })
 
-async function load () {
+async function load ({ requestId = ++activeRequestId } = {}) {
   try {
     loading.value = true
     error.value = ''
     const res = await etlGetPrograms({
-      q: q.value,
+      q: (q.value || '').trim(),
       level: level.value,
-      region: region.value,
+      region: (region.value || '').trim(),
       page: page.value,
       page_size: pageSize.value,
     })
+    if (requestId !== activeRequestId) return
     data.value = res || { count: 0, page: page.value, page_size: pageSize.value, results: [] }
   } catch (e) {
+    if (requestId !== activeRequestId) return
     error.value = e?.message || 'Failed to load programs'
   } finally {
-    loading.value = false
+    if (requestId === activeRequestId) loading.value = false
   }
 }
 
 function scheduleLoad ({ resetPage = false } = {}) {
   if (searchTimer) clearTimeout(searchTimer)
   if (resetPage) page.value = 1
+  const requestId = ++activeRequestId
+  error.value = ''
+  loading.value = true
+  data.value = { count: 0, page: page.value, page_size: pageSize.value, results: [] }
   searchTimer = setTimeout(() => {
-    load()
+    load({ requestId })
   }, searchDelayMs)
 }
 
@@ -57,11 +64,13 @@ function openChat () {
 }
 
 function goPrev () {
+  if (searchTimer) clearTimeout(searchTimer)
   page.value = Math.max(1, Number(page.value || 1) - 1)
   load()
 }
 
 function goNext () {
+  if (searchTimer) clearTimeout(searchTimer)
   page.value = Math.min(totalPages.value, Number(page.value || 1) + 1)
   load()
 }
@@ -130,7 +139,7 @@ onMounted(load)
     <p v-if="error" class="mt-3 text-sm text-red-600">{{ error }}</p>
 
     <div class="mt-6 grid grid-cols-1 gap-3">
-      <div v-for="(p, idx) in (data?.results || [])" :key="p.source_index || p.program_code || p.normalized_name || idx" class="card p-4">
+      <div v-for="(p, idx) in (data?.results || [])" :key="(p.source_index ?? `${p.program_code || ''}:${p.institution_name || ''}:${idx}`)" class="card p-4">
         <div class="flex items-start justify-between gap-4">
           <div>
             <div class="font-semibold text-gray-900">{{ p.normalized_name || p.name }}</div>

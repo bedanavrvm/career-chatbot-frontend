@@ -15,24 +15,34 @@ const data = ref({ count: 0, results: [] })
 
 const searchDelayMs = 250
 let searchTimer = null
+let activeRequestId = 0
 
-async function load () {
+async function load ({ clearResults = false, requestId = ++activeRequestId } = {}) {
   try {
     loading.value = true
     error.value = ''
-    const res = await etlGetInstitutions({ q: q.value, region: region.value, county: county.value })
+    if (clearResults) {
+      data.value = { count: 0, results: [] }
+    }
+    const res = await etlGetInstitutions({
+      q: (q.value || '').trim(),
+      region: (region.value || '').trim(),
+      county: (county.value || '').trim(),
+    })
+    if (requestId !== activeRequestId) return
     data.value = res || { count: 0, results: [] }
   } catch (e) {
+    if (requestId !== activeRequestId) return
     error.value = e?.message || 'Failed to load institutions'
   } finally {
-    loading.value = false
+    if (requestId === activeRequestId) loading.value = false
   }
 }
 
 function scheduleLoad () {
   if (searchTimer) clearTimeout(searchTimer)
   searchTimer = setTimeout(() => {
-    load()
+    load({ clearResults: true })
   }, searchDelayMs)
 }
 
