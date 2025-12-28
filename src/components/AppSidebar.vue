@@ -1,6 +1,6 @@
 <script setup>
 import { ref, computed } from 'vue'
-import { Home, MessageCircle, LayoutDashboard, User, UserPlus, LogIn, Info, ChevronLeft, ChevronRight, X, GraduationCap, Building2, Gauge, Brain } from 'lucide-vue-next'
+import { MessageCircle, LayoutDashboard, User, UserPlus, ChevronLeft, ChevronRight, X, GraduationCap, Building2, Gauge, Brain } from 'lucide-vue-next'
 import { auth } from '../lib/firebase'
 import { onAuthStateChanged } from 'firebase/auth'
 
@@ -18,25 +18,15 @@ onAuthStateChanged(auth, (u) => {
 })
 
 const sidebarWidthClass = computed(() => {
-  return props.collapsed ? 'lg:w-16' : 'lg:w-64'
+  return props.collapsed ? 'md:w-16' : 'md:w-64'
 })
 
 const navItems = computed(() => {
-  const base = [
-    { label: 'Home', icon: Home, to: { name: 'home' } },
-    { label: 'About', icon: Info, to: { name: 'about' } },
-  ]
-
   if (!currentUser.value) {
-    return [
-      ...base,
-      { label: 'Login', icon: LogIn, to: { name: 'login' } },
-      { label: 'Register', icon: UserPlus, to: { name: 'register' } },
-    ]
+    return []
   }
 
   return [
-    ...base,
     { label: 'Dashboard', icon: LayoutDashboard, to: { name: 'dashboard' } },
     { label: 'Chat', icon: MessageCircle, to: { name: 'chat' } },
     { label: 'Programmes', icon: GraduationCap, to: { name: 'programs' } },
@@ -59,28 +49,24 @@ function toggleCollapsed () {
 
 <template>
   <div>
-    <div v-if="open" class="fixed inset-0 top-16 bg-black/30 z-20 lg:hidden" @click="close"></div>
+    <div v-if="open" class="fixed inset-0 top-16 bg-black/30 z-20 md:hidden" @click="close"></div>
 
     <aside
       :class="[
-        'z-30',
-        'bg-white/90 backdrop-blur border-r lg:border',
-        'fixed top-16 left-0 bottom-0 lg:sticky lg:top-16',
+        'z-30 shrink-0',
+        'bg-white/90 backdrop-blur border-r',
+        'fixed top-16 left-0 bottom-0 md:sticky md:top-16',
         'h-[calc(100vh-4rem)]',
         'w-72',
         sidebarWidthClass,
-        open ? 'translate-x-0' : '-translate-x-full lg:translate-x-0',
-        'transition-transform lg:transition-[width] duration-200',
+        open ? 'translate-x-0' : '-translate-x-full md:translate-x-0',
+        'transition-transform md:transition-[width] duration-200',
       ]"
     >
-      <div class="p-4 flex items-center justify-between gap-2">
-        <div class="min-w-0">
-          <div class="text-sm font-semibold text-gray-900 truncate" v-if="!collapsed">Navigate</div>
-          <div class="text-xs text-gray-600 truncate" v-if="!collapsed">Quick links</div>
-        </div>
-        <div class="flex items-center gap-2">
+      <nav :class="[collapsed ? 'px-1 py-0' : 'px-2 py-0', 'h-full overflow-y-auto']">
+        <div class="md:hidden py-1">
           <button
-            class="btn btn-ghost btn-sm lg:hidden"
+            class="btn btn-ghost btn-sm"
             type="button"
             title="Close sidebar"
             aria-label="Close sidebar"
@@ -88,20 +74,21 @@ function toggleCollapsed () {
           >
             <X class="h-4 w-4" />
           </button>
-          <button
-            class="btn btn-ghost btn-sm hidden lg:inline-flex"
-            type="button"
-            :title="collapsed ? 'Expand sidebar' : 'Collapse sidebar'"
-            :aria-label="collapsed ? 'Expand sidebar' : 'Collapse sidebar'"
-            @click="toggleCollapsed"
-          >
-            <ChevronRight v-if="collapsed" class="h-4 w-4" />
-            <ChevronLeft v-else class="h-4 w-4" />
-          </button>
         </div>
-      </div>
 
-      <nav class="px-3 pb-4 space-y-1 overflow-y-auto">
+        <button
+          class="hidden md:inline-flex w-full items-center gap-3 rounded-xl text-sm font-medium text-gray-700 hover:bg-gray-100 transition-all focus:outline-none focus:ring-2 focus:ring-inset focus:ring-brand/20"
+          type="button"
+          :title="collapsed ? 'Expand sidebar' : 'Collapse sidebar'"
+          :aria-label="collapsed ? 'Expand sidebar' : 'Collapse sidebar'"
+          :class="collapsed ? 'justify-center px-2 py-2.5' : 'justify-start px-3 py-2.5'"
+          @click="toggleCollapsed"
+        >
+          <ChevronRight v-if="collapsed" class="h-4 w-4 shrink-0" />
+          <ChevronLeft v-else class="h-4 w-4 shrink-0" />
+          <span v-if="!collapsed" class="truncate">Collapse</span>
+        </button>
+
         <RouterLink v-for="it in navItems" :key="it.label" :to="it.to" custom v-slot="{ href, navigate, isActive, isExactActive }">
           <a
             :href="href"

@@ -1,5 +1,5 @@
 <script setup>
-import { ref, onMounted, computed } from 'vue'
+import { ref, onMounted, computed, watch, onBeforeUnmount } from 'vue'
 import { useRouter } from 'vue-router'
 import { Search, GraduationCap, MapPin } from 'lucide-vue-next'
 import { etlGetPrograms } from '../lib/api'
@@ -13,6 +13,9 @@ const level = ref('bachelor')
 const region = ref('')
 const page = ref(1)
 const pageSize = ref(20)
+
+const searchDelayMs = 250
+let searchTimer = null
 
 const data = ref({ count: 0, page: 1, page_size: 20, results: [] })
 
@@ -41,6 +44,14 @@ async function load () {
   }
 }
 
+function scheduleLoad ({ resetPage = false } = {}) {
+  if (searchTimer) clearTimeout(searchTimer)
+  if (resetPage) page.value = 1
+  searchTimer = setTimeout(() => {
+    load()
+  }, searchDelayMs)
+}
+
 function openChat () {
   router.push({ name: 'chat' })
 }
@@ -55,10 +66,12 @@ function goNext () {
   load()
 }
 
-function submitSearch () {
-  page.value = 1
-  load()
-}
+watch(q, () => scheduleLoad({ resetPage: true }))
+watch([level, region], () => scheduleLoad({ resetPage: true }))
+
+onBeforeUnmount(() => {
+  if (searchTimer) clearTimeout(searchTimer)
+})
 
 onMounted(load)
 </script>
@@ -78,7 +91,7 @@ onMounted(load)
     </div>
 
     <div class="mt-6 card p-4">
-      <form class="grid grid-cols-1 md:grid-cols-12 gap-3" @submit.prevent="submitSearch">
+      <div class="grid grid-cols-1 md:grid-cols-12 gap-3">
         <div class="md:col-span-6">
           <label class="label">Search</label>
           <div class="mt-1 relative">
@@ -105,14 +118,13 @@ onMounted(load)
           </div>
         </div>
 
-        <div class="md:col-span-12 flex items-center justify-between gap-3 pt-1">
+        <div class="md:col-span-12 flex items-center gap-3 pt-1">
           <div class="text-sm text-gray-600">
             <span v-if="loading">Loading…</span>
             <span v-else>Showing {{ (data?.results || []).length }} of {{ data?.count || 0 }}</span>
           </div>
-          <button class="btn btn-primary btn-md" type="submit">Search</button>
         </div>
-      </form>
+      </div>
     </div>
 
     <p v-if="error" class="mt-3 text-sm text-red-600">{{ error }}</p>

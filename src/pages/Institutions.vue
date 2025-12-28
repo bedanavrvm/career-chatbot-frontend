@@ -1,5 +1,5 @@
 <script setup>
-import { ref, onMounted } from 'vue'
+import { ref, onMounted, watch, onBeforeUnmount } from 'vue'
 import { useRouter } from 'vue-router'
 import { Search, Building2, ExternalLink, MapPin } from 'lucide-vue-next'
 import { etlGetInstitutions } from '../lib/api'
@@ -12,6 +12,9 @@ const q = ref('')
 const region = ref('')
 const county = ref('')
 const data = ref({ count: 0, results: [] })
+
+const searchDelayMs = 250
+let searchTimer = null
 
 async function load () {
   try {
@@ -26,13 +29,22 @@ async function load () {
   }
 }
 
+function scheduleLoad () {
+  if (searchTimer) clearTimeout(searchTimer)
+  searchTimer = setTimeout(() => {
+    load()
+  }, searchDelayMs)
+}
+
 function openChat () {
   router.push({ name: 'chat' })
 }
 
-function submitSearch () {
-  load()
-}
+watch([q, region, county], scheduleLoad)
+
+onBeforeUnmount(() => {
+  if (searchTimer) clearTimeout(searchTimer)
+})
 
 onMounted(load)
 </script>
@@ -52,7 +64,7 @@ onMounted(load)
     </div>
 
     <div class="mt-6 card p-4">
-      <form class="grid grid-cols-1 md:grid-cols-12 gap-3" @submit.prevent="submitSearch">
+      <div class="grid grid-cols-1 md:grid-cols-12 gap-3">
         <div class="md:col-span-6">
           <label class="label">Search</label>
           <div class="mt-1 relative">
@@ -77,14 +89,13 @@ onMounted(load)
           </div>
         </div>
 
-        <div class="md:col-span-12 flex items-center justify-between gap-3 pt-1">
+        <div class="md:col-span-12 flex items-center gap-3 pt-1">
           <div class="text-sm text-gray-600">
             <span v-if="loading">Loading…</span>
             <span v-else>Showing {{ (data?.results || []).length }} of {{ data?.count || 0 }}</span>
           </div>
-          <button class="btn btn-primary btn-md" type="submit">Search</button>
         </div>
-      </form>
+      </div>
     </div>
 
     <p v-if="error" class="mt-3 text-sm text-red-600">{{ error }}</p>

@@ -1,11 +1,15 @@
 <script setup>
 import { ref, computed } from 'vue'
 import { useRouter } from 'vue-router'
-import { Menu, Home, MessageCircle, LayoutDashboard, User, UserPlus, LogIn, LogOut } from 'lucide-vue-next'
+import { Menu, Home, LayoutDashboard, User, UserPlus, LogIn, LogOut } from 'lucide-vue-next'
 import { auth } from '../lib/firebase'
 import { onAuthStateChanged, signOut } from 'firebase/auth'
 
 const emit = defineEmits(['toggle-sidebar'])
+
+defineProps({
+  showSidebarToggle: { type: Boolean, default: true },
+})
 
 const router = useRouter()
 const currentUser = ref(null)
@@ -32,7 +36,8 @@ function toggleSidebar () {
     <nav class="container-page h-16 flex items-center justify-between">
       <div class="flex items-center gap-3">
         <button
-          class="btn btn-ghost btn-sm lg:hidden"
+          v-if="showSidebarToggle"
+          class="btn btn-ghost btn-sm md:hidden"
           type="button"
           title="Open menu"
           aria-label="Open menu"
@@ -57,19 +62,6 @@ function toggleSidebar () {
             <Home class="h-4 w-4" />
             <span class="hidden sm:inline">Home</span>
             <span class="sr-only sm:hidden">Home</span>
-          </a>
-        </RouterLink>
-        <RouterLink to="/chat" custom v-slot="{ href, navigate, isActive }">
-          <a
-            :href="href"
-            @click="navigate"
-            :class="['nav-item', 'gap-2', isActive && 'nav-item--active']"
-            title="Chat"
-            aria-label="Chat"
-          >
-            <MessageCircle class="h-4 w-4" />
-            <span class="hidden sm:inline">Chat</span>
-            <span class="sr-only sm:hidden">Chat</span>
           </a>
         </RouterLink>
         <template v-if="currentUser">
