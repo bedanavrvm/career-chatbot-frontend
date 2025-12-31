@@ -18,12 +18,14 @@ onAuthStateChanged(auth, (u) => {
 })
 
 const showSidebar = ref(false)
+const hideNav = ref(false)
 
 watch(
   () => [route.name, route.path, isAuthenticated.value],
   () => {
     const isHome = route.name === 'home' || route.path === '/'
-    showSidebar.value = isAuthenticated.value && !isHome
+    hideNav.value = route.name === 'onboarding' || route.path === '/onboarding'
+    showSidebar.value = isAuthenticated.value && !isHome && !hideNav.value
     if (!showSidebar.value) sidebarOpen.value = false
   },
   { immediate: true }
@@ -38,7 +40,7 @@ watch(
 </script>
 
 <template>
-  <NavBar :showSidebarToggle="showSidebar" @toggle-sidebar="sidebarOpen = true" />
+  <NavBar :showSidebarToggle="showSidebar" :hideNavLinks="hideNav" @toggle-sidebar="sidebarOpen = true" />
   <div class="flex h-[calc(100vh-4rem)]">
     <AppSidebar
       v-if="showSidebar"

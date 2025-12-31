@@ -9,6 +9,7 @@ const emit = defineEmits(['toggle-sidebar'])
 
 defineProps({
   showSidebarToggle: { type: Boolean, default: true },
+  hideNavLinks: { type: Boolean, default: false },
 })
 
 const router = useRouter()
@@ -45,13 +46,17 @@ function toggleSidebar () {
         >
           <Menu class="h-4 w-4" />
         </button>
-        <RouterLink to="/" class="flex items-center gap-3">
+        <RouterLink v-if="!hideNavLinks" to="/" class="flex items-center gap-3">
           <div class="h-9 w-9 rounded-lg bg-brand flex items-center justify-center text-white font-bold shadow-soft">AI</div>
           <span class="text-lg font-semibold tracking-tight hidden sm:inline">{{ appName }}</span>
         </RouterLink>
+        <div v-else class="flex items-center gap-3">
+          <div class="h-9 w-9 rounded-lg bg-brand flex items-center justify-center text-white font-bold shadow-soft">AI</div>
+          <span class="text-lg font-semibold tracking-tight hidden sm:inline">{{ appName }}</span>
+        </div>
       </div>
       <div class="flex flex-wrap items-center justify-end gap-2 sm:gap-4">
-        <RouterLink to="/" custom v-slot="{ href, navigate, isExactActive }">
+        <RouterLink v-if="!hideNavLinks" to="/" custom v-slot="{ href, navigate, isExactActive }">
           <a
             :href="href"
             @click="navigate"
@@ -64,7 +69,7 @@ function toggleSidebar () {
             <span class="sr-only sm:hidden">Home</span>
           </a>
         </RouterLink>
-        <template v-if="currentUser">
+        <template v-if="currentUser && !hideNavLinks">
           <RouterLink to="/dashboard" custom v-slot="{ href, navigate, isActive }">
             <a
               :href="href"
@@ -121,7 +126,7 @@ function toggleSidebar () {
           </RouterLink>
         </template>
         <template v-else>
-          <span class="hidden sm:block text-sm text-gray-600">{{ userEmail }}</span>
+          <span v-if="!hideNavLinks" class="hidden sm:block text-sm text-gray-600">{{ userEmail }}</span>
           <button
             @click="logout"
             class="btn btn-primary btn-sm sm:btn-md gap-2 shrink-0"

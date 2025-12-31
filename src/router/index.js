@@ -4,6 +4,8 @@ import About from '../pages/About.vue'
 import Login from '../pages/auth/Login.vue'
 import Register from '../pages/auth/Register.vue'
 import { auth, authReady } from '../lib/firebase'
+import { getIdToken } from 'firebase/auth'
+import { onboardingMe } from '../lib/api'
 import Chat from '../pages/Chat.vue'
 import Onboarding from '../pages/Onboarding.vue'
 import Dashboard from '../pages/Dashboard.vue'
@@ -35,6 +37,35 @@ const router = createRouter({
   routes,
 })
 
+let onboardingCache = { uid: '', status: '', checkedAt: 0 }
+
+async function getOnboardingStatus() {
+  const u = auth.currentUser
+  if (!u) return ''
+  const now = Date.now()
+  if (onboardingCache.uid === u.uid && onboardingCache.status === 'complete' && now - onboardingCache.checkedAt < 60_000) {
+    return onboardingCache.status
+  }
+
+  const key = `onboarding_status:${u.uid}`
+  try {
+    const cached = localStorage.getItem(key)
+    if (cached === 'complete') {
+      onboardingCache = { uid: u.uid, status: 'complete', checkedAt: now }
+      return 'complete'
+    }
+  } catch {}
+
+  const token = await getIdToken(u, true)
+  const data = await onboardingMe(token)
+  const status = String(data?.status || '')
+  onboardingCache = { uid: u.uid, status, checkedAt: now }
+  if (status === 'complete') {
+    try { localStorage.setItem(key, 'complete') } catch {}
+  }
+  return status
+}
+
 let initialAuthChecked = false
 router.beforeEach(async (to, from, next) => {
   // Ensure we wait for the first auth state resolution to avoid flicker/loops
@@ -47,6 +78,20 @@ router.beforeEach(async (to, from, next) => {
   if (requiresAuth && !user) {
     next({ path: '/login', query: { redirect: to.fullPath } })
   } else {
+    const isOnboarding = to.name === 'onboarding' || to.path === '/onboarding'
+    const isAuthPage = to.name === 'login' || to.name === 'register'
+    if (user && !isOnboarding && !isAuthPage) {
+      try {
+        const status = await getOnboardingStatus()
+        if (status !== 'complete') {
+          next({ path: '/onboarding' })
+          return
+        }
+      } catch {
+        next({ path: '/onboarding' })
+        return
+      }
+    }
     next()
   }
 })
