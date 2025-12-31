@@ -17,7 +17,8 @@ const searchDelayMs = 250
 let searchTimer = null
 let activeRequestId = 0
 
-async function load ({ clearResults = false, requestId = ++activeRequestId } = {}) {
+async function load ({ clearResults = false } = {}) {
+  const requestId = ++activeRequestId
   try {
     loading.value = true
     error.value = ''
@@ -41,8 +42,12 @@ async function load ({ clearResults = false, requestId = ++activeRequestId } = {
 
 function scheduleLoad () {
   if (searchTimer) clearTimeout(searchTimer)
+  const requestId = ++activeRequestId
+  error.value = ''
+  loading.value = true
+  data.value = { count: 0, results: [] }
   searchTimer = setTimeout(() => {
-    load({ clearResults: true })
+    load({ clearResults: false, requestId })
   }, searchDelayMs)
 }
 
@@ -111,7 +116,7 @@ onMounted(load)
     <p v-if="error" class="mt-3 text-sm text-red-600">{{ error }}</p>
 
     <div class="mt-6 grid grid-cols-1 gap-3">
-      <div v-for="(inst, idx) in (data?.results || [])" :key="inst.code || inst.name || idx" class="card p-4">
+      <div v-for="(inst, idx) in (data?.results || [])" :key="`${inst.code || ''}:${inst.name || ''}:${idx}`" class="card p-4">
         <div class="flex items-start justify-between gap-4">
           <div>
             <div class="font-semibold text-gray-900">{{ inst.name }}</div>
