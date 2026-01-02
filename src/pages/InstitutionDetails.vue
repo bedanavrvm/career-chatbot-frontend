@@ -1,7 +1,7 @@
 <script setup>
 import { ref, onMounted, computed } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
-import { ArrowLeft, ExternalLink, GraduationCap } from 'lucide-vue-next'
+import { ArrowLeft, ExternalLink, GraduationCap, MapPin } from 'lucide-vue-next'
 import { auth } from '../lib/firebase'
 import { getIdToken } from 'firebase/auth'
 import { catalogGetInstitution } from '../lib/api'
@@ -46,6 +46,36 @@ const title = computed(() => {
   return i?.name || 'Institution'
 })
 
+const campuses = computed(() => {
+  const c = inst.value?.campuses
+  return Array.isArray(c) ? c : []
+})
+
+const mainCampus = computed(() => {
+  const c = campuses.value
+  return c.find((x) => x?.is_main) || c[0] || null
+})
+
+const branchCampuses = computed(() => {
+  const c = campuses.value
+  const main = mainCampus.value
+  if (!c.length) return []
+  return c.filter((x) => x && x !== main)
+})
+
+function mapsLinkForCampus(c) {
+  const q = String(c?.map_query || c?.campus || '').trim()
+  if (!q) return ''
+  return `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(q)}`
+}
+
+const embeddedMapUrl = computed(() => {
+  const c = mainCampus.value
+  const q = String(c?.map_query || '').trim()
+  if (!q) return ''
+  return `https://www.google.com/maps?q=${encodeURIComponent(q)}&output=embed`
+})
+
 function back() {
   if (window.history.length > 1) router.back()
   else router.push('/institutions')
@@ -56,6 +86,16 @@ function programLabel(p) {
   const level = (p?.level || '').trim()
   if (!level) return name
   return `${name} (${level})`
+}
+
+function campusLabel(c) {
+  const parts = [
+    String(c?.campus || '').trim(),
+    String(c?.town || '').trim(),
+    String(c?.county || '').trim(),
+    String(c?.region || '').trim(),
+  ].filter(Boolean)
+  return parts.join(' · ')
 }
 </script>
 
@@ -124,6 +164,72 @@ function programLabel(p) {
               <span>Institution website</span>
             </a>
           </div>
+        </div>
+
+        <div class="card p-4">
+          <div class="flex items-center justify-between gap-4">
+            <h2 class="text-lg font-semibold text-gray-900">Campuses</h2>
+            <div v-if="campuses.length" class="text-xs text-gray-500">{{ campuses.length }} total</div>
+          </div>
+
+          <div v-if="mainCampus" class="mt-3">
+            <div class="text-sm font-medium text-gray-900">Main campus</div>
+            <div class="mt-2 border rounded-lg p-3 bg-white/60">
+              <div class="flex items-start justify-between gap-3">
+                <div>
+                  <div class="text-sm text-gray-900">{{ campusLabel(mainCampus) }}</div>
+                  <a
+                    v-if="mapsLinkForCampus(mainCampus)"
+                    class="mt-2 inline-flex items-center gap-2 text-sm text-brand-dark hover:underline"
+                    :href="mapsLinkForCampus(mainCampus)"
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    title="Open in Google Maps"
+                    aria-label="Open in Google Maps"
+                  >
+                    <MapPin class="h-4 w-4" />
+                    <span>Open in Google Maps</span>
+                  </a>
+                </div>
+              </div>
+
+              <div v-if="embeddedMapUrl" class="mt-3 overflow-hidden rounded-lg border">
+                <iframe
+                  :src="embeddedMapUrl"
+                  class="w-full h-64"
+                  loading="lazy"
+                  referrerpolicy="no-referrer-when-downgrade"
+                  title="Main campus map"
+                />
+              </div>
+            </div>
+          </div>
+
+          <div v-if="branchCampuses.length" class="mt-4">
+            <div class="text-sm font-medium text-gray-900">Branch campuses</div>
+            <div class="mt-2 space-y-2">
+              <div v-for="(c, idx) in branchCampuses" :key="`${c.campus || ''}:${idx}`" class="border rounded-lg p-3 bg-white/60">
+                <div class="flex items-start justify-between gap-3">
+                  <div class="text-sm text-gray-900">{{ campusLabel(c) }}</div>
+                  <a
+                    v-if="mapsLinkForCampus(c)"
+                    class="inline-flex items-center gap-2 text-sm text-brand-dark hover:underline shrink-0"
+                    :href="mapsLinkForCampus(c)"
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    title="Open in Google Maps"
+                    aria-label="Open in Google Maps"
+                  >
+                    <MapPin class="h-4 w-4" />
+                    <span class="hidden sm:inline">Maps</span>
+                    <span class="sr-only sm:hidden">Maps</span>
+                  </a>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <p v-if="!campuses.length" class="mt-2 text-sm text-gray-600">No campus location data available yet.</p>
         </div>
 
         <div class="card p-4">
