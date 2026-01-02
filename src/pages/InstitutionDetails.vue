@@ -76,6 +76,11 @@ const embeddedMapUrl = computed(() => {
   return `https://www.google.com/maps?q=${encodeURIComponent(q)}&output=embed`
 })
 
+const hasAside = computed(() => {
+  const m = inst.value?.metadata
+  return !!(m && typeof m === 'object' && Object.keys(m || {}).length)
+})
+
 function back() {
   if (window.history.length > 1) router.back()
   else router.push('/institutions')
@@ -108,7 +113,7 @@ function campusLabel(c) {
 </script>
 
 <template>
-  <main class="container-page px-4 py-6">
+  <main class="w-full px-4 sm:px-6 lg:px-8 py-6">
     <div class="flex items-start justify-between gap-4">
       <div>
         <h1 class="text-2xl font-bold text-gray-900">{{ title }}</h1>
@@ -136,8 +141,11 @@ function campusLabel(c) {
     <p v-if="error" class="mt-3 text-sm text-red-600">{{ error }}</p>
     <div v-else-if="loading" class="mt-4 text-sm text-gray-600">Loading…</div>
 
-    <div v-else-if="inst" class="mt-6 grid grid-cols-1 lg:grid-cols-3 gap-6">
-      <section class="lg:col-span-2 space-y-6">
+    <div
+      v-else-if="inst"
+      :class="['mt-6 grid gap-6', hasAside ? 'grid-cols-1 lg:grid-cols-3' : 'grid-cols-1']"
+    >
+      <section :class="[hasAside ? 'lg:col-span-2' : 'lg:col-span-3', 'space-y-6']">
         <div class="grid grid-cols-1 xl:grid-cols-2 gap-6">
           <div class="card p-4">
             <h2 class="text-lg font-semibold text-gray-900">Overview</h2>
@@ -278,8 +286,8 @@ function campusLabel(c) {
         </div>
       </section>
 
-      <aside class="space-y-6">
-        <div v-if="inst.metadata && Object.keys(inst.metadata || {}).length" class="card p-4">
+      <aside v-if="hasAside" class="space-y-6">
+        <div class="card p-4">
           <h2 class="text-lg font-semibold text-gray-900">Additional details</h2>
           <pre class="mt-3 text-xs text-gray-700 whitespace-pre-wrap break-words">{{ inst.metadata }}</pre>
         </div>
