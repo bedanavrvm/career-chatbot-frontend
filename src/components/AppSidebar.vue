@@ -56,7 +56,7 @@ function toggleCollapsed () {
         'z-30 shrink-0',
         'bg-white/90 backdrop-blur border-r',
         'fixed top-16 left-0 bottom-0 md:sticky md:top-16',
-        'h-[calc(100vh-4rem)]',
+        'h-[calc(100dvh-4rem)]',
         'w-72',
         sidebarWidthClass,
         open ? 'translate-x-0' : '-translate-x-full md:translate-x-0',

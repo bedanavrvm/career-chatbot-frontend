@@ -3,7 +3,7 @@ import { ref } from 'vue'
 import { useRouter, useRoute, RouterLink } from 'vue-router'
 import { auth, googleProvider } from '../../lib/firebase'
 import { createUserWithEmailAndPassword, updateProfile, signInWithPopup, getIdToken } from 'firebase/auth'
-import { registerProfile } from '../../lib/api'
+import { registerProfile, onboardingMe } from '../../lib/api'
 
 const router = useRouter()
 const route = useRoute()
@@ -21,6 +21,20 @@ function redirectTarget() {
   return route.query.redirect || '/onboarding'
 }
 
+async function redirectAfterAuth(token) {
+  try {
+    const data = await onboardingMe(token)
+    const status = String(data?.status || '')
+    if (status === 'complete') {
+      router.replace(route.query.redirect || '/dashboard')
+    } else {
+      router.replace('/onboarding')
+    }
+  } catch {
+    router.replace('/onboarding')
+  }
+}
+
 async function doRegister() {
   error.value = ''
   try {
@@ -34,7 +48,7 @@ async function doRegister() {
     }
     const token = await getIdToken(cred.user, true)
     await registerProfile(token)
-    router.replace(redirectTarget())
+    await redirectAfterAuth(token)
   } catch (e) {
     error.value = e?.message || 'Registration failed'
   } finally {
@@ -49,7 +63,7 @@ async function registerWithGoogle() {
     const cred = await signInWithPopup(auth, googleProvider)
     const token = await getIdToken(cred.user, true)
     await registerProfile(token)
-    router.replace(redirectTarget())
+    await redirectAfterAuth(token)
   } catch (e) {
     error.value = e?.message || 'Google sign-in failed'
   } finally {

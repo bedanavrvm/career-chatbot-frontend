@@ -55,6 +55,12 @@ function openChat () {
   router.push({ name: 'chat' })
 }
 
+function openInstitution (inst) {
+  const code = String(inst?.code || '').trim()
+  if (!code) return
+  router.push({ name: 'institution_details', params: { code } })
+}
+
 watch([q, region, county], scheduleLoad)
 
 onBeforeUnmount(() => {
@@ -116,7 +122,16 @@ onMounted(load)
     <p v-if="error" class="mt-3 text-sm text-red-600">{{ error }}</p>
 
     <div class="mt-6 grid grid-cols-1 gap-3">
-      <div v-for="(inst, idx) in (data?.results || [])" :key="`${inst.code || ''}:${inst.name || ''}:${idx}`" class="card p-4">
+      <div
+        v-for="(inst, idx) in (data?.results || [])"
+        :key="`${inst.code || ''}:${inst.name || ''}:${idx}`"
+        class="card p-4 cursor-pointer"
+        role="button"
+        tabindex="0"
+        @click="openInstitution(inst)"
+        @keydown.enter.prevent="openInstitution(inst)"
+        @keydown.space.prevent="openInstitution(inst)"
+      >
         <div class="flex items-start justify-between gap-4">
           <div>
             <div class="font-semibold text-gray-900">{{ inst.name }}</div>
@@ -137,6 +152,7 @@ onMounted(load)
             rel="noopener"
             title="Open website"
             aria-label="Open website"
+            @click.stop
           >
             <ExternalLink class="h-4 w-4" />
             <span class="hidden sm:inline">Website</span>

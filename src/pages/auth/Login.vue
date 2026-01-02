@@ -3,7 +3,7 @@ import { ref } from 'vue'
 import { useRouter, useRoute, RouterLink } from 'vue-router'
 import { auth, googleProvider } from '../../lib/firebase'
 import { signInWithEmailAndPassword, signInWithPopup, getIdToken } from 'firebase/auth'
-import { loginProfile } from '../../lib/api'
+import { loginProfile, onboardingMe } from '../../lib/api'
 
 const router = useRouter()
 const route = useRoute()
@@ -20,6 +20,20 @@ function redirectTarget() {
   return route.query.redirect || '/dashboard'
 }
 
+async function redirectAfterAuth(token) {
+  try {
+    const data = await onboardingMe(token)
+    const status = String(data?.status || '')
+    if (status === 'complete') {
+      router.replace(redirectTarget())
+    } else {
+      router.replace('/onboarding')
+    }
+  } catch {
+    router.replace('/onboarding')
+  }
+}
+
 async function doLogin() {
   error.value = ''
   emailError.value = /\S+@\S+\.\S+/.test(email.value.trim()) ? '' : 'Enter a valid email'
@@ -32,7 +46,7 @@ async function doLogin() {
     const cred = await signInWithEmailAndPassword(auth, email.value.trim(), password.value)
     const token = await getIdToken(cred.user, true)
     await loginProfile(token)
-    router.replace(redirectTarget())
+    await redirectAfterAuth(token)
   } catch (e) {
     error.value = e?.message || 'Login failed'
   } finally {
@@ -47,7 +61,7 @@ async function loginWithGoogle() {
     const cred = await signInWithPopup(auth, googleProvider)
     const token = await getIdToken(cred.user, true)
     await loginProfile(token)
-    router.replace(redirectTarget())
+    await redirectAfterAuth(token)
   } catch (e) {
     error.value = e?.message || 'Google sign-in failed'
   } finally {

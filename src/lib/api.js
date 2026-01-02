@@ -122,6 +122,18 @@ export async function catalogGetProgram(idToken, programId) {
   return parseJson(res)
 }
 
+export async function catalogGetInstitution(idToken, institutionCode) {
+  const code = encodeURIComponent(String(institutionCode || '').trim())
+  const url = `${base}/api/catalog/institutions/${code}`
+  const headers = {}
+  if (idToken) headers.Authorization = `Bearer ${idToken}`
+  const res = await fetch(url, {
+    method: 'GET',
+    headers,
+  })
+  return parseJson(res)
+}
+
 // Onboarding API
 export async function onboardingMe(idToken) {
   const url = `${base}/api/auth/onboarding/me/`
