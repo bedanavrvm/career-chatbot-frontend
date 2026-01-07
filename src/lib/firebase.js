@@ -1,3 +1,5 @@
+import { readonly, ref } from 'vue'
+
 import { initializeApp } from 'firebase/app';
 import { getAuth, GoogleAuthProvider, onAuthStateChanged } from 'firebase/auth';
 
@@ -14,10 +16,25 @@ export const app = initializeApp(firebaseConfig);
 export const auth = getAuth(app);
 export const googleProvider = new GoogleAuthProvider();
 
+const _authUser = ref(auth.currentUser)
+export const authUser = readonly(_authUser)
+
+const _authReadyState = ref(false)
+export const authReadyState = readonly(_authReadyState)
+
 // Promise that resolves on first auth state emission
+let _resolveAuthReady
 export const authReady = new Promise((resolve) => {
-  const off = onAuthStateChanged(auth, () => {
-    off();
-    resolve();
-  });
+  _resolveAuthReady = resolve
+});
+
+onAuthStateChanged(auth, (u) => {
+  _authUser.value = u
+  if (!_authReadyState.value) {
+    _authReadyState.value = true
+  }
+  if (_resolveAuthReady) {
+    _resolveAuthReady()
+    _resolveAuthReady = null
+  }
 });

@@ -1,8 +1,8 @@
 <script setup>
-import { ref, computed } from 'vue'
+import { computed } from 'vue'
 import { MessageCircle, LayoutDashboard, User, UserPlus, ChevronLeft, ChevronRight, X, GraduationCap, Building2, Gauge, Brain } from 'lucide-vue-next'
-import { auth } from '../lib/firebase'
-import { onAuthStateChanged } from 'firebase/auth'
+
+import { useAuth } from '../lib/useAuth'
 
 const props = defineProps({
   open: { type: Boolean, default: false },
@@ -11,11 +11,7 @@ const props = defineProps({
 
 const emit = defineEmits(['close', 'toggle-collapsed'])
 
-const currentUser = ref(null)
-
-onAuthStateChanged(auth, (u) => {
-  currentUser.value = u
-})
+const { user: currentUser } = useAuth()
 
 const sidebarWidthClass = computed(() => {
   return props.collapsed ? 'md:w-16' : 'md:w-64'

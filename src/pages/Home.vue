@@ -1,28 +1,24 @@
 <script setup>
 import { ref, onMounted } from 'vue'
-import { auth } from '../lib/firebase'
-import { onAuthStateChanged, getIdToken } from 'firebase/auth'
+import { useAuth } from '../lib/useAuth'
 import { meProfile } from '../lib/api'
 
-const user = ref(auth.currentUser)
+const { user, getIdToken, waitForAuthReady } = useAuth()
 const profile = ref(null)
 const loading = ref(true)
 const error = ref('')
 
 onMounted(async () => {
-  const unsub = onAuthStateChanged(auth, async (u) => {
-    user.value = u
-    if (u) {
-      try {
-        const token = await getIdToken(u, true)
-        profile.value = await meProfile(token)
-      } catch (e) {
-        error.value = e?.message || 'Failed to load profile'
-      }
+  await waitForAuthReady()
+  if (user.value) {
+    try {
+      const token = await getIdToken(true)
+      profile.value = await meProfile(token)
+    } catch (e) {
+      error.value = e?.message || 'Failed to load profile'
     }
-    loading.value = false
-    unsub()
-  })
+  }
+  loading.value = false
 })
 </script>
 

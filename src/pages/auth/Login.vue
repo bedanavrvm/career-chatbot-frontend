@@ -3,7 +3,8 @@ import { ref } from 'vue'
 import { useRouter, useRoute, RouterLink } from 'vue-router'
 import { auth, googleProvider } from '../../lib/firebase'
 import { signInWithEmailAndPassword, signInWithPopup, getIdToken } from 'firebase/auth'
-import { loginProfile, onboardingMe } from '../../lib/api'
+import { loginProfile, onboardingMe, formatApiError } from '../../lib/api'
+import FormErrors from '../../components/FormErrors.vue'
 
 const router = useRouter()
 const route = useRoute()
@@ -12,6 +13,7 @@ const email = ref('')
 const password = ref('')
 const loading = ref(false)
 const error = ref('')
+const errorFields = ref(null)
 const emailError = ref('')
 const passwordError = ref('')
 const showPassword = ref(false)
@@ -36,6 +38,7 @@ async function redirectAfterAuth(token) {
 
 async function doLogin() {
   error.value = ''
+  errorFields.value = null
   emailError.value = /\S+@\S+\.\S+/.test(email.value.trim()) ? '' : 'Enter a valid email'
   passwordError.value = password.value.length >= 6 ? '' : 'Password must be at least 6 characters'
   if (emailError.value || passwordError.value) {
@@ -48,7 +51,8 @@ async function doLogin() {
     await loginProfile(token)
     await redirectAfterAuth(token)
   } catch (e) {
-    error.value = e?.message || 'Login failed'
+    errorFields.value = e?.fields || e?.data?.fields || null
+    error.value = formatApiError(e) || 'Login failed'
   } finally {
     loading.value = false
   }
@@ -56,6 +60,7 @@ async function doLogin() {
 
 async function loginWithGoogle() {
   error.value = ''
+  errorFields.value = null
   try {
     loading.value = true
     const cred = await signInWithPopup(auth, googleProvider)
@@ -63,7 +68,8 @@ async function loginWithGoogle() {
     await loginProfile(token)
     await redirectAfterAuth(token)
   } catch (e) {
-    error.value = e?.message || 'Google sign-in failed'
+    errorFields.value = e?.fields || e?.data?.fields || null
+    error.value = formatApiError(e) || 'Google sign-in failed'
   } finally {
     loading.value = false
   }
@@ -117,6 +123,7 @@ async function loginWithGoogle() {
           Continue with Google
         </button>
 
+        <FormErrors :fields="errorFields" />
         <p v-if="error" class="mt-3 text-sm text-red-600">{{ error }}</p>
 
         <p class="mt-6 text-sm text-gray-600 text-center">

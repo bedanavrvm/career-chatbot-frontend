@@ -4,7 +4,7 @@ import About from '../pages/About.vue'
 import Login from '../pages/auth/Login.vue'
 import Register from '../pages/auth/Register.vue'
 import { auth, authReady } from '../lib/firebase'
-import { getIdToken } from 'firebase/auth'
+import { getIdToken } from '../lib/useAuth'
 import { onboardingMe } from '../lib/api'
 import Chat from '../pages/Chat.vue'
 import Onboarding from '../pages/Onboarding.vue'
@@ -58,7 +58,7 @@ async function getOnboardingStatus() {
     }
   } catch {}
 
-  const token = await getIdToken(u, true)
+  const token = await getIdToken(true)
   const data = await onboardingMe(token)
   const status = String(data?.status || '')
   onboardingCache = { uid: u.uid, status, checkedAt: now }

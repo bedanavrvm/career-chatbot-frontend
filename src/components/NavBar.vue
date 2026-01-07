@@ -1,9 +1,11 @@
 <script setup>
-import { ref, computed } from 'vue'
+import { computed } from 'vue'
 import { useRouter } from 'vue-router'
 import { Menu, Home, LayoutDashboard, User, UserPlus, LogIn, LogOut } from 'lucide-vue-next'
 import { auth } from '../lib/firebase'
-import { onAuthStateChanged, signOut } from 'firebase/auth'
+import { signOut } from 'firebase/auth'
+
+import { useAuth } from '../lib/useAuth'
 
 const emit = defineEmits(['toggle-sidebar'])
 
@@ -13,11 +15,7 @@ defineProps({
 })
 
 const router = useRouter()
-const currentUser = ref(null)
-
-onAuthStateChanged(auth, (u) => {
-  currentUser.value = u
-})
+const { user: currentUser } = useAuth()
 
 const userEmail = computed(() => currentUser.value?.email || currentUser.value?.displayName || '')
 const appName = computed(() => import.meta.env.VITE_APP_NAME || 'Career Chatbot')

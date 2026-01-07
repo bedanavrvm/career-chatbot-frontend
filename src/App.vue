@@ -1,21 +1,19 @@
 <script setup>
-import { ref, watch } from 'vue'
+import { ref, watch, computed } from 'vue'
 import { useRoute } from 'vue-router'
 import NavBar from './components/NavBar.vue'
 import AppSidebar from './components/AppSidebar.vue'
-import { auth } from './lib/firebase'
-import { onAuthStateChanged } from 'firebase/auth'
+import SystemStatusBanner from './components/SystemStatusBanner.vue'
+
+import { useAuth } from './lib/useAuth'
 
 const route = useRoute()
 
 const sidebarOpen = ref(false)
 const sidebarCollapsed = ref(false)
 
-const isAuthenticated = ref(false)
-onAuthStateChanged(auth, (u) => {
-  isAuthenticated.value = !!u
-  if (!isAuthenticated.value) sidebarOpen.value = false
-})
+const { user } = useAuth()
+const isAuthenticated = computed(() => !!user.value)
 
 const showSidebar = ref(false)
 const hideNav = ref(false)
@@ -50,6 +48,7 @@ watch(
       @toggle-collapsed="sidebarCollapsed = !sidebarCollapsed"
     />
     <div class="min-w-0 min-h-0 flex-1 overflow-y-auto overflow-x-hidden">
+      <SystemStatusBanner v-if="!hideNav" />
       <RouterView />
     </div>
   </div>

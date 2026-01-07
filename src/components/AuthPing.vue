@@ -1,17 +1,15 @@
 <script setup>
 import { ref } from 'vue'
 import { auth, googleProvider } from '../lib/firebase'
-import { signInWithPopup, signOut, onAuthStateChanged, getIdToken } from 'firebase/auth'
+import { signInWithPopup, signOut } from 'firebase/auth'
 import { securePing } from '../lib/api'
 
-const user = ref(null)
+import { useAuth } from '../lib/useAuth'
+
+const { user, getIdToken } = useAuth()
 const loading = ref(false)
 const error = ref('')
 const pingResult = ref(null)
-
-onAuthStateChanged(auth, (u) => {
-  user.value = u
-})
 
 async function login() {
   error.value = ''
@@ -36,10 +34,10 @@ async function pingBackend() {
   pingResult.value = null
   try {
     loading.value = true
-    if (!auth.currentUser) {
+    if (!user.value) {
       throw new Error('Not signed in')
     }
-    const token = await getIdToken(auth.currentUser, true)
+    const token = await getIdToken(true)
     const res = await securePing(token)
     pingResult.value = res
   } catch (e) {
