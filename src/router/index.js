@@ -1,21 +1,24 @@
 import { createRouter, createWebHistory } from 'vue-router'
-import Home from '../pages/Home.vue'
-import About from '../pages/About.vue'
-import Login from '../pages/auth/Login.vue'
-import Register from '../pages/auth/Register.vue'
 import { auth, authReady } from '../lib/firebase'
 import { getIdToken } from '../lib/useAuth'
-import { onboardingMe } from '../lib/api'
-import Chat from '../pages/Chat.vue'
-import Onboarding from '../pages/Onboarding.vue'
-import Dashboard from '../pages/Dashboard.vue'
-import ProfileSettings from '../pages/ProfileSettings.vue'
-import ProgramDetails from '../pages/ProgramDetails.vue'
-import ClusterScoreDetails from '../pages/ClusterScoreDetails.vue'
-import RiasecDetails from '../pages/RiasecDetails.vue'
-import Programs from '../pages/Programs.vue'
-import Institutions from '../pages/Institutions.vue'
-import InstitutionDetails from '../pages/InstitutionDetails.vue'
+import { onboardingMe, onboardingSave } from '../lib/api'
+import { confirmDialog } from '../utils/confirmDialog'
+import { getOnboardingStatus, invalidateOnboardingStatusCache, setOnboardingStatusCache } from '../utils/onboardingStatus'
+
+const Home = () => import('../pages/Home.vue')
+const About = () => import('../pages/About.vue')
+const Login = () => import('../pages/auth/Login.vue')
+const Register = () => import('../pages/auth/Register.vue')
+const Chat = () => import('../pages/Chat.vue')
+const Onboarding = () => import('../pages/Onboarding.vue')
+const Dashboard = () => import('../pages/Dashboard.vue')
+const ProfileSettings = () => import('../pages/ProfileSettings.vue')
+const ProgramDetails = () => import('../pages/ProgramDetails.vue')
+const ClusterScoreDetails = () => import('../pages/ClusterScoreDetails.vue')
+const RiasecDetails = () => import('../pages/RiasecDetails.vue')
+const Programs = () => import('../pages/Programs.vue')
+const Institutions = () => import('../pages/Institutions.vue')
+const InstitutionDetails = () => import('../pages/InstitutionDetails.vue')
 
 const routes = [
   { path: '/', name: 'home', component: Home },
@@ -39,35 +42,6 @@ const router = createRouter({
   routes,
 })
 
-let onboardingCache = { uid: '', status: '', checkedAt: 0 }
-
-async function getOnboardingStatus() {
-  const u = auth.currentUser
-  if (!u) return ''
-  const now = Date.now()
-  if (onboardingCache.uid === u.uid && onboardingCache.status === 'complete' && now - onboardingCache.checkedAt < 60_000) {
-    return onboardingCache.status
-  }
-
-  const key = `onboarding_status:${u.uid}`
-  try {
-    const cached = localStorage.getItem(key)
-    if (cached === 'complete') {
-      onboardingCache = { uid: u.uid, status: 'complete', checkedAt: now }
-      return 'complete'
-    }
-  } catch {}
-
-  const token = await getIdToken(true)
-  const data = await onboardingMe(token)
-  const status = String(data?.status || '')
-  onboardingCache = { uid: u.uid, status, checkedAt: now }
-  if (status === 'complete') {
-    try { localStorage.setItem(key, 'complete') } catch {}
-  }
-  return status
-}
-
 let initialAuthChecked = false
 router.beforeEach(async (to, from, next) => {
   // Ensure we wait for the first auth state resolution to avoid flicker/loops
@@ -82,9 +56,37 @@ router.beforeEach(async (to, from, next) => {
   } else {
     const isOnboarding = to.name === 'onboarding' || to.path === '/onboarding'
     const isAuthPage = to.name === 'login' || to.name === 'register'
+    if (user && isOnboarding && !isAuthPage) {
+      try {
+        const status = await getOnboardingStatus({ user, getIdToken, onboardingMe })
+        const fromOnboarding = from?.name === 'onboarding' || from?.path === '/onboarding'
+        if (status === 'complete' && !fromOnboarding) {
+          const ok = await confirmDialog({
+            title: 'Re-run onboarding?',
+            message: 'Re-running onboarding will overwrite your current profile details and answers. You will need to complete the entire onboarding again.',
+            confirmText: 'Yes, re-run onboarding',
+            cancelText: 'Cancel',
+            destructive: true,
+          })
+          if (!ok) {
+            next(false)
+            return
+          }
+
+          try {
+            const token = await getIdToken(true)
+            await onboardingSave(token, { status: 'incomplete' })
+            invalidateOnboardingStatusCache(user.uid)
+            setOnboardingStatusCache(user.uid, 'incomplete')
+          } catch {
+            invalidateOnboardingStatusCache(user.uid)
+          }
+        }
+      } catch {}
+    }
     if (user && !isOnboarding && !isAuthPage) {
       try {
-        const status = await getOnboardingStatus()
+        const status = await getOnboardingStatus({ user, getIdToken, onboardingMe })
         if (status !== 'complete') {
           next({ path: '/onboarding' })
           return

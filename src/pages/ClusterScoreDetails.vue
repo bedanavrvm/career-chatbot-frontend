@@ -2,29 +2,29 @@
 import { ref, onMounted, computed } from 'vue'
 import { useRouter } from 'vue-router'
 import { ArrowLeft } from 'lucide-vue-next'
-import { auth } from '../lib/firebase'
-import { getIdToken } from 'firebase/auth'
 import { onboardingDashboard } from '../lib/api'
+import { useAuth } from '../lib/useAuth'
+import { useApiCall } from '../utils/useApiCall'
 
 const router = useRouter()
 
-const loading = ref(false)
-const error = ref('')
+const { user, getIdToken } = useAuth()
+const { loading, error, run } = useApiCall({ toastErrors: true })
+
 const kcse = ref({ has_grades: false, cluster_score: null, subjects_provided: 0, top4_points: 0, top7_points: 0, subjects: [], top4_subjects: [], top7_subjects: [], formula: null })
 
 async function load() {
-  try {
-    loading.value = true
-    const u = auth.currentUser
-    if (!u) { router.replace('/login'); return }
-    const token = await getIdToken(u, true)
-    const data = await onboardingDashboard(token)
-    kcse.value = data?.kcse || kcse.value
-  } catch (e) {
-    error.value = e?.message || 'Failed to load cluster score details'
-  } finally {
-    loading.value = false
-  }
+  const data = await run(async () => {
+    const u = user.value
+    if (!u) {
+      router.replace('/login')
+      return null
+    }
+    const token = await getIdToken(true)
+    return onboardingDashboard(token)
+  }, { fallbackMessage: 'Failed to load cluster score details' })
+  if (!data) return
+  kcse.value = data?.kcse || kcse.value
 }
 
 onMounted(load)

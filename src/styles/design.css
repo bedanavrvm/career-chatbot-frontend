@@ -23,26 +23,26 @@
   .btn-primary { @apply btn text-white bg-brand hover:bg-brand-dark; }
   .btn-outline { @apply btn border text-gray-800 hover:bg-gray-50; }
   .btn-ghost { @apply btn text-gray-700 hover:bg-gray-100; }
-  .btn-lg { @apply px-5 py-3; }
-  .btn-md { @apply px-4 py-2.5; }
+  .btn-lg { @apply px-4 py-2.5 text-sm; }
+  .btn-md { @apply px-3.5 py-2.5 text-sm; }
   .btn-sm { @apply px-3 py-2 text-sm rounded-lg; }
 
   .clickable-card { @apply cursor-pointer transition-all hover:bg-white/70 hover:shadow-md hover:-translate-y-0.5 active:translate-y-0 focus:outline-none focus:ring-2 focus:ring-brand/30; }
   .chip-btn { @apply inline-flex items-center rounded-full border border-gray-200 bg-white px-3 py-1 text-sm transition-all hover:bg-gray-50 hover:shadow-sm active:scale-95 focus:outline-none focus:ring-2 focus:ring-brand/20; }
 
-  .input { @apply block w-full rounded-2xl border-2 border-gray-300 bg-white px-4 py-3 text-gray-900 placeholder:text-gray-400 shadow-inner focus:outline-none focus:border-brand focus:ring-4 focus:ring-brand/20 transition; }
-  .input-md { @apply px-4 py-2.5 text-[0.95rem]; }
-  .input-lg { @apply px-4 py-3.5 text-base; }
+  .input { @apply block w-full rounded-xl border-2 border-gray-300 bg-white px-3 py-2.5 text-sm text-gray-900 placeholder:text-gray-400 shadow-inner focus:outline-none focus:border-brand focus:ring-4 focus:ring-brand/20 transition; }
+  .input-md { @apply px-3 py-2.5 text-sm; }
+  .input-lg { @apply px-3 py-2.5 text-sm; }
   .input-error { @apply border-red-400 focus:border-red-500 focus:ring-red-200; }
-  .label { @apply block text-sm font-semibold text-gray-800; }
-  .help-text { @apply mt-1 text-sm text-gray-500; }
-  .error-text { @apply mt-1 text-sm text-red-600; }
+  .label { @apply block text-xs font-semibold text-gray-800; }
+  .help-text { @apply mt-1 text-xs text-gray-500; }
+  .error-text { @apply mt-1 text-xs text-red-600; }
 
   .input-group { @apply relative; }
-  .input-icon { @apply pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 h-5 w-5 text-gray-400; }
-  .with-icon-left { @apply pl-11; }
+  .input-icon { @apply pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400; }
+  .with-icon-left { @apply pl-10; }
   .input-action { @apply absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600; }
-  .with-icon-right { @apply pr-11; }
+  .with-icon-right { @apply pr-10; }
 
   .badge { @apply inline-flex items-center rounded-full px-3 py-1 text-xs font-semibold; }
   .badge-soft { @apply bg-brand/10 text-brand; }
@@ -62,7 +62,7 @@
 
   .auth-page { @apply min-h-screen relative flex items-center justify-center bg-gradient-to-b from-white to-slate-50; }
   .auth-overlay { @apply absolute inset-0 -z-10; background-image: radial-gradient(40% 60% at 20% 20%, rgba(99,102,241,.12), transparent), radial-gradient(35% 55% at 80% 70%, rgba(168,85,247,.12), transparent); }
-  .auth-card { @apply w-full max-w-md p-8 bg-white border rounded-2xl shadow-2xl; }
+  .auth-card { @apply w-full max-w-md p-6 bg-white border rounded-2xl shadow-2xl; }
 
   /* Theme overrides for quick brand switching */
   .theme-emerald .btn-primary { @apply bg-emerald-500 hover:bg-emerald-600; }

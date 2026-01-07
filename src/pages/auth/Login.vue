@@ -2,8 +2,11 @@
 import { ref } from 'vue'
 import { useRouter, useRoute, RouterLink } from 'vue-router'
 import { auth, googleProvider } from '../../lib/firebase'
-import { signInWithEmailAndPassword, signInWithPopup, getIdToken } from 'firebase/auth'
-import { loginProfile, onboardingMe, formatApiError } from '../../lib/api'
+import { signInWithEmailAndPassword, signInWithPopup } from 'firebase/auth'
+import { loginProfile, onboardingMe } from '../../lib/api'
+import { getIdTokenForUser } from '../../lib/useAuth'
+import { useApiCall } from '../../utils/useApiCall'
+import { setOnboardingStatusCache } from '../../utils/onboardingStatus'
 import FormErrors from '../../components/FormErrors.vue'
 
 const router = useRouter()
@@ -11,8 +14,7 @@ const route = useRoute()
 
 const email = ref('')
 const password = ref('')
-const loading = ref(false)
-const error = ref('')
+const { loading, error, lastException, run, clearError } = useApiCall({ toastErrors: true })
 const errorFields = ref(null)
 const emailError = ref('')
 const passwordError = ref('')
@@ -26,6 +28,8 @@ async function redirectAfterAuth(token) {
   try {
     const data = await onboardingMe(token)
     const status = String(data?.status || '')
+    const uid = String(auth.currentUser?.uid || '')
+    if (uid && status) setOnboardingStatusCache(uid, status)
     if (status === 'complete') {
       router.replace(redirectTarget())
     } else {
@@ -37,41 +41,43 @@ async function redirectAfterAuth(token) {
 }
 
 async function doLogin() {
-  error.value = ''
+  clearError()
   errorFields.value = null
   emailError.value = /\S+@\S+\.\S+/.test(email.value.trim()) ? '' : 'Enter a valid email'
   passwordError.value = password.value.length >= 6 ? '' : 'Password must be at least 6 characters'
   if (emailError.value || passwordError.value) {
     return
   }
-  try {
-    loading.value = true
+
+  const ok = await run(async () => {
     const cred = await signInWithEmailAndPassword(auth, email.value.trim(), password.value)
-    const token = await getIdToken(cred.user, true)
+    const token = await getIdTokenForUser(cred.user, true)
     await loginProfile(token)
     await redirectAfterAuth(token)
-  } catch (e) {
+    return true
+  }, { fallbackMessage: 'Login failed' })
+
+  if (!ok) {
+    const e = lastException.value
     errorFields.value = e?.fields || e?.data?.fields || null
-    error.value = formatApiError(e) || 'Login failed'
-  } finally {
-    loading.value = false
   }
 }
 
 async function loginWithGoogle() {
-  error.value = ''
+
+  clearError()
   errorFields.value = null
-  try {
-    loading.value = true
+  const ok = await run(async () => {
     const cred = await signInWithPopup(auth, googleProvider)
-    const token = await getIdToken(cred.user, true)
+    const token = await getIdTokenForUser(cred.user, true)
     await loginProfile(token)
     await redirectAfterAuth(token)
-  } catch (e) {
+    return true
+  }, { fallbackMessage: 'Google sign-in failed' })
+
+  if (!ok) {
+    const e = lastException.value
     errorFields.value = e?.fields || e?.data?.fields || null
-    error.value = formatApiError(e) || 'Google sign-in failed'
-  } finally {
-    loading.value = false
   }
 }
 </script>

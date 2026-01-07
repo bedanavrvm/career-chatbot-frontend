@@ -2,14 +2,15 @@
 import { ref, onMounted, computed } from 'vue'
 import { useRouter } from 'vue-router'
 import { ArrowLeft } from 'lucide-vue-next'
-import { auth } from '../lib/firebase'
-import { getIdToken } from 'firebase/auth'
 import { onboardingDashboard } from '../lib/api'
+import { useAuth } from '../lib/useAuth'
+import { useApiCall } from '../utils/useApiCall'
 
 const router = useRouter()
 
-const loading = ref(false)
-const error = ref('')
+const { user, getIdToken } = useAuth()
+const { loading, error, run } = useApiCall({ toastErrors: true })
+
 const profile = ref(null)
 const riasec = ref({ scores: {}, top: [], narrative: '' })
 
@@ -47,19 +48,18 @@ const TRAIT_INFO = {
 }
 
 async function load() {
-  try {
-    loading.value = true
-    const u = auth.currentUser
-    if (!u) { router.replace('/login'); return }
-    const token = await getIdToken(u, true)
-    const data = await onboardingDashboard(token)
-    profile.value = data?.profile || null
-    riasec.value = data?.riasec || riasec.value
-  } catch (e) {
-    error.value = e?.message || 'Failed to load RIASEC details'
-  } finally {
-    loading.value = false
-  }
+  const data = await run(async () => {
+    const u = user.value
+    if (!u) {
+      router.replace('/login')
+      return null
+    }
+    const token = await getIdToken(true)
+    return onboardingDashboard(token)
+  }, { fallbackMessage: 'Failed to load RIASEC details' })
+  if (!data) return
+  profile.value = data?.profile || null
+  riasec.value = data?.riasec || riasec.value
 }
 
 onMounted(load)

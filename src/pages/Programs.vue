@@ -3,11 +3,11 @@ import { ref, onMounted, computed, watch, onBeforeUnmount } from 'vue'
 import { useRouter } from 'vue-router'
 import { Search, GraduationCap, MapPin } from 'lucide-vue-next'
 import { etlGetPrograms } from '../lib/api'
+import { useApiCall } from '../utils/useApiCall'
 
 const router = useRouter()
 
-const loading = ref(false)
-const error = ref('')
+const { loading, error, run, clearError } = useApiCall({ toastErrors: true })
 const q = ref('')
 const level = ref('bachelor')
 const region = ref('')
@@ -27,32 +27,26 @@ const totalPages = computed(() => {
 })
 
 async function load ({ requestId = ++activeRequestId } = {}) {
-  try {
-    loading.value = true
-    error.value = ''
-    const res = await etlGetPrograms({
+  clearError()
+  const res = await run(async () => {
+    return etlGetPrograms({
       q: (q.value || '').trim(),
       level: level.value,
       region: (region.value || '').trim(),
       page: page.value,
       page_size: pageSize.value,
     })
-    if (requestId !== activeRequestId) return
-    data.value = res || { count: 0, page: page.value, page_size: pageSize.value, results: [] }
-  } catch (e) {
-    if (requestId !== activeRequestId) return
-    error.value = e?.message || 'Failed to load programs'
-  } finally {
-    if (requestId === activeRequestId) loading.value = false
-  }
+  }, { fallbackMessage: 'Failed to load programs', silent: true })
+  if (requestId !== activeRequestId) return
+  if (!res) return
+  data.value = res || { count: 0, page: page.value, page_size: pageSize.value, results: [] }
 }
 
 function scheduleLoad ({ resetPage = false } = {}) {
   if (searchTimer) clearTimeout(searchTimer)
   if (resetPage) page.value = 1
   const requestId = ++activeRequestId
-  error.value = ''
-  loading.value = true
+  clearError()
   data.value = { count: 0, page: page.value, page_size: pageSize.value, results: [] }
   searchTimer = setTimeout(() => {
     load({ requestId })
@@ -139,6 +133,14 @@ onMounted(load)
     <p v-if="error" class="mt-3 text-sm text-red-600">{{ error }}</p>
 
     <div class="mt-6 grid grid-cols-1 gap-3">
+      <div v-if="loading && !(data?.results || []).length" class="grid grid-cols-1 gap-3">
+        <div v-for="i in 6" :key="i" class="card p-4 animate-pulse">
+          <div class="h-4 w-2/3 bg-gray-200 rounded"></div>
+          <div class="mt-2 h-3 w-1/2 bg-gray-200 rounded"></div>
+          <div class="mt-3 h-3 w-3/4 bg-gray-100 rounded"></div>
+        </div>
+      </div>
+
       <div v-for="(p, idx) in (data?.results || [])" :key="(p.source_index ?? `${p.program_code || ''}:${p.institution_name || ''}:${idx}`)" class="card p-4">
         <div class="flex items-start justify-between gap-4">
           <div>

@@ -28,13 +28,26 @@ import {
 import { RIASEC_TRAITS, buildRiasecScenarios } from './onboarding/riasecScenarios'
 import { normalizeOnboardingMeData, buildOnboardingSavePayload } from '../utils/onboardingPayload'
 import { resolveRiasecScenarioOrder } from '../utils/riasecOrder'
+import { invalidateOnboardingStatusCache, setOnboardingStatusCache } from '../utils/onboardingStatus'
+import { useProfile } from '../utils/useProfile'
+import { computeHsValidation } from '../utils/kcseValidation'
 
 const router = useRouter()
 const { user, getIdToken } = useAuth()
+const { set: setProfileCache } = useProfile()
 const loading = ref(false)
 const error = ref('')
 const errorFields = ref(null)
 const step = ref(1) // 1=Universal, 2=Level, 3=Branch, 4=Lifestyle, 5=RIASEC, 6=Review
+
+const saveState = ref('idle') // idle | saving | saved
+let savedTimer = null
+
+const saveLabel = computed(() => {
+  if (saveState.value === 'saving') return 'Saving…'
+  if (saveState.value === 'saved') return 'Saved'
+  return ''
+})
 
 const RIASEC_SCENARIOS_VERSION = 'v1'
 
@@ -122,10 +135,6 @@ const hs = reactive({
 
 const hsSubjectQuery = ref('')
 
-function _normGrade(g) {
-  return String(g || '').trim().toUpperCase().replace(/\s+/g, '')
-}
-
 function hsAddSubject(code) {
   const c = String(code || '').trim().toUpperCase()
   if (!c) return
@@ -202,21 +211,15 @@ const hsAvailableSubjects = computed(() => {
 })
 
 const hsValidation = computed(() => {
-  const codes = (Array.isArray(hs.subject_codes) ? hs.subject_codes : []).map((x) => String(x || '').toUpperCase())
-  const n = codes.length
-  const hasMandatory = KNEC_MANDATORY.every((c) => codes.includes(c))
-  const hasLanguage = codes.some((c) => KNEC_LANGUAGES.includes(c))
-  const grades = (hs.subject_grades && typeof hs.subject_grades === 'object') ? hs.subject_grades : {}
-  const missingGrades = codes.filter((c) => !KCSE_GRADES.includes(_normGrade(grades[c])))
-  const okCount = n >= KNEC_MIN_SUBJECTS && n <= KNEC_MAX_SUBJECTS
-  return {
-    n,
-    okCount,
-    hasMandatory,
-    hasLanguage,
-    missingGrades,
-    ok: okCount && hasMandatory && hasLanguage && missingGrades.length === 0,
-  }
+  return computeHsValidation({
+    subjectCodes: hs.subject_codes,
+    subjectGrades: hs.subject_grades,
+    kcseGrades: KCSE_GRADES,
+    knecMinSubjects: KNEC_MIN_SUBJECTS,
+    knecMaxSubjects: KNEC_MAX_SUBJECTS,
+    knecMandatory: KNEC_MANDATORY,
+    knecLanguages: KNEC_LANGUAGES,
+  })
 })
 
 const uni = reactive({
@@ -350,6 +353,7 @@ async function preload() {
     loading.value = true
     const t = await token()
     const data = await onboardingMe(t)
+    setProfileCache(data)
     const norm = normalizeOnboardingMeData(data)
     educationLevel.value = norm.educationLevel
     Object.assign(universal, norm.universal)
@@ -387,6 +391,8 @@ onMounted(async () => {
 async function savePartial() {
   try {
     errorFields.value = null
+    saveState.value = 'saving'
+    if (savedTimer) clearTimeout(savedTimer)
     const t = await token()
     const payload = buildOnboardingSavePayload({
       educationLevel: educationLevel.value,
@@ -398,9 +404,23 @@ async function savePartial() {
       riasec,
     })
     await onboardingSave(t, payload)
+
+    setProfileCache(payload)
+
+    const uid = user.value?.uid || ''
+    if (uid) {
+      invalidateOnboardingStatusCache(uid)
+      setOnboardingStatusCache(uid, 'incomplete')
+    }
+
+    saveState.value = 'saved'
+    savedTimer = setTimeout(() => {
+      saveState.value = 'idle'
+    }, 1500)
   } catch (e) {
     errorFields.value = e?.fields || e?.data?.fields || null
     error.value = formatApiError(e) || 'Save failed'
+    saveState.value = 'idle'
   }
 }
 
@@ -435,6 +455,15 @@ async function submitAll() {
     if (error.value) return
     const t = await token()
     await onboardingSave(t, { status: 'complete' })
+
+    setProfileCache({ status: 'complete' })
+
+    const uid = user.value?.uid || ''
+    if (uid) {
+      invalidateOnboardingStatusCache(uid)
+      setOnboardingStatusCache(uid, 'complete')
+    }
+
     router.replace('/dashboard')
   } catch (e) {
     errorFields.value = e?.fields || e?.data?.fields || null
@@ -446,8 +475,13 @@ async function submitAll() {
 
 <template>
   <main class="container-page px-4 py-6">
-    <h1 class="text-2xl font-bold">Complete your profile</h1>
-    <p class="text-gray-600">{{ stepTitle }} (Step {{ step }} of 6)</p>
+    <div class="flex items-start justify-between gap-4">
+      <div>
+        <h1 class="text-2xl font-bold">Complete your profile</h1>
+        <p class="text-gray-600">{{ stepTitle }} (Step {{ step }} of 6)</p>
+      </div>
+      <div v-if="saveLabel" class="text-xs text-gray-600 mt-1">{{ saveLabel }}</div>
+    </div>
     <p v-if="error" class="mt-2 text-sm text-red-600">{{ error }}</p>
     <FormErrors :fields="errorFields" />
 

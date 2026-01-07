@@ -2,15 +2,16 @@
 import { ref, onMounted, computed } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { ArrowLeft, ExternalLink } from 'lucide-vue-next'
-import { auth } from '../lib/firebase'
-import { getIdToken } from 'firebase/auth'
 import { catalogGetProgram } from '../lib/api'
+import { useAuth } from '../lib/useAuth'
+import { useApiCall } from '../utils/useApiCall'
 
 const route = useRoute()
 const router = useRouter()
 
-const loading = ref(false)
-const error = ref('')
+const { user, getIdToken } = useAuth()
+const { loading, error, run } = useApiCall({ toastErrors: true })
+
 const program = ref(null)
 
 const programId = computed(() => {
@@ -20,24 +21,19 @@ const programId = computed(() => {
 })
 
 async function load() {
-  error.value = ''
   program.value = null
   if (!programId.value) {
-    error.value = 'Invalid program id'
+    run(() => Promise.reject(new Error('Invalid program id')), { fallbackMessage: 'Invalid program id', silent: true })
     return
   }
 
-  try {
-    loading.value = true
-    const u = auth.currentUser
-    const token = u ? await getIdToken(u, true) : ''
-    const data = await catalogGetProgram(token, programId.value)
-    program.value = data
-  } catch (e) {
-    error.value = e?.message || 'Failed to load program'
-  } finally {
-    loading.value = false
-  }
+  const data = await run(async () => {
+    const u = user.value
+    const token = u ? await getIdToken(true) : ''
+    return catalogGetProgram(token, programId.value)
+  }, { fallbackMessage: 'Failed to load program' })
+
+  if (data) program.value = data
 }
 
 onMounted(load)

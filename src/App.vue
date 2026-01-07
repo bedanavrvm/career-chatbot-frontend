@@ -4,6 +4,9 @@ import { useRoute } from 'vue-router'
 import NavBar from './components/NavBar.vue'
 import AppSidebar from './components/AppSidebar.vue'
 import SystemStatusBanner from './components/SystemStatusBanner.vue'
+import ConfirmDialogHost from './components/ConfirmDialogHost.vue'
+import ToastHost from './components/ToastHost.vue'
+import GlobalLoadingOverlay from './components/GlobalLoadingOverlay.vue'
 
 import { useAuth } from './lib/useAuth'
 
@@ -38,6 +41,9 @@ watch(
 </script>
 
 <template>
+  <ConfirmDialogHost />
+  <ToastHost />
+  <GlobalLoadingOverlay />
   <NavBar :showSidebarToggle="showSidebar" :hideNavLinks="hideNav" @toggle-sidebar="sidebarOpen = true" />
   <div class="flex min-h-0 h-[calc(100dvh-4rem)]">
     <AppSidebar

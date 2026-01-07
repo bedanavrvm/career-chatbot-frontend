@@ -2,15 +2,16 @@
 import { ref, onMounted, computed } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { ArrowLeft, ExternalLink, GraduationCap, MapPin } from 'lucide-vue-next'
-import { auth } from '../lib/firebase'
-import { getIdToken } from 'firebase/auth'
 import { catalogGetInstitution } from '../lib/api'
+import { useAuth } from '../lib/useAuth'
+import { useApiCall } from '../utils/useApiCall'
 
 const route = useRoute()
 const router = useRouter()
 
-const loading = ref(false)
-const error = ref('')
+const { user, getIdToken } = useAuth()
+const { loading, error, run } = useApiCall({ toastErrors: true })
+
 const inst = ref(null)
 
 const institutionCode = computed(() => {
@@ -19,24 +20,19 @@ const institutionCode = computed(() => {
 })
 
 async function load() {
-  error.value = ''
   inst.value = null
   if (!institutionCode.value) {
-    error.value = 'Invalid institution code'
+    run(() => Promise.reject(new Error('Invalid institution code')), { fallbackMessage: 'Invalid institution code', silent: true })
     return
   }
 
-  try {
-    loading.value = true
-    const u = auth.currentUser
-    const token = u ? await getIdToken(u, true) : ''
-    const data = await catalogGetInstitution(token, institutionCode.value)
-    inst.value = data
-  } catch (e) {
-    error.value = e?.message || 'Failed to load institution'
-  } finally {
-    loading.value = false
-  }
+  const data = await run(async () => {
+    const u = user.value
+    const token = u ? await getIdToken(true) : ''
+    return catalogGetInstitution(token, institutionCode.value)
+  }, { fallbackMessage: 'Failed to load institution' })
+
+  if (data) inst.value = data
 }
 
 onMounted(load)

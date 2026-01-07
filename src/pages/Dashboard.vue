@@ -2,32 +2,38 @@
 import { ref, onMounted, computed } from 'vue'
 import { useRouter } from 'vue-router'
 import { Gauge, Brain, GraduationCap, MapPin, UserRoundCog } from 'lucide-vue-next'
-import { auth } from '../lib/firebase'
-import { getIdToken } from 'firebase/auth'
 import { onboardingDashboard } from '../lib/api'
+import { useAuth } from '../lib/useAuth'
+import { useApiCall } from '../utils/useApiCall'
+import { useProfile } from '../utils/useProfile'
 
 // Inline: User dashboard showing RIASEC summary; redirects to onboarding if incomplete.
 const router = useRouter()
-const loading = ref(false)
-const error = ref('')
+const { user, getIdToken } = useAuth()
+const { loading, error, run } = useApiCall({ toastErrors: true })
+const { set: setProfileCache } = useProfile()
 const profile = ref(null)
 const riasec = ref({ scores: {}, top: [], narrative: '' })
 const kcse = ref({ has_grades: false, cluster_score: null, subjects_provided: 0, top4_points: 0, top7_points: 0 })
 
 async function load() {
-  try {
-    loading.value = true
-    const u = auth.currentUser
-    if (!u) { router.replace('/login'); return }
-    const token = await getIdToken(u, true)
-    const data = await onboardingDashboard(token)
-    profile.value = data?.profile || {}
-    riasec.value = data?.riasec || { scores: {}, top: [], narrative: '' }
-    kcse.value = data?.kcse || { has_grades: false, cluster_score: null, subjects_provided: 0, top4_points: 0, top7_points: 0 }
-    if ((profile.value?.status || '') !== 'complete') { router.replace('/onboarding'); return }
-  } catch (e) {
-    error.value = e?.message || 'Failed to load dashboard'
-  } finally { loading.value = false }
+  const data = await run(async () => {
+    const u = user.value
+    if (!u) {
+      router.replace('/login')
+      return null
+    }
+    const token = await getIdToken(true)
+    return onboardingDashboard(token)
+  }, { fallbackMessage: 'Failed to load dashboard' })
+  if (!data) return
+  profile.value = data?.profile || {}
+  setProfileCache(profile.value)
+  riasec.value = data?.riasec || { scores: {}, top: [], narrative: '' }
+  kcse.value = data?.kcse || { has_grades: false, cluster_score: null, subjects_provided: 0, top4_points: 0, top7_points: 0 }
+  if ((profile.value?.status || '') !== 'complete') {
+    router.replace('/onboarding')
+  }
 }
 
 onMounted(load)

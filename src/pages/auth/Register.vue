@@ -2,8 +2,11 @@
 import { ref } from 'vue'
 import { useRouter, useRoute, RouterLink } from 'vue-router'
 import { auth, googleProvider } from '../../lib/firebase'
-import { createUserWithEmailAndPassword, updateProfile, signInWithPopup, getIdToken } from 'firebase/auth'
-import { registerProfile, onboardingMe, formatApiError } from '../../lib/api'
+import { createUserWithEmailAndPassword, updateProfile, signInWithPopup } from 'firebase/auth'
+import { registerProfile, onboardingMe } from '../../lib/api'
+import { getIdTokenForUser } from '../../lib/useAuth'
+import { useApiCall } from '../../utils/useApiCall'
+import { setOnboardingStatusCache } from '../../utils/onboardingStatus'
 import FormErrors from '../../components/FormErrors.vue'
 
 const router = useRouter()
@@ -12,8 +15,7 @@ const route = useRoute()
 const fullName = ref('')
 const email = ref('')
 const password = ref('')
-const loading = ref(false)
-const error = ref('')
+const { loading, error, lastException, run, clearError } = useApiCall({ toastErrors: true })
 const errorFields = ref(null)
 const emailError = ref('')
 const passwordError = ref('')
@@ -27,6 +29,8 @@ async function redirectAfterAuth(token) {
   try {
     const data = await onboardingMe(token)
     const status = String(data?.status || '')
+    const uid = String(auth.currentUser?.uid || '')
+    if (uid && status) setOnboardingStatusCache(uid, status)
     if (status === 'complete') {
       router.replace(route.query.redirect || '/dashboard')
     } else {
@@ -38,42 +42,45 @@ async function redirectAfterAuth(token) {
 }
 
 async function doRegister() {
-  error.value = ''
+
+  clearError()
   errorFields.value = null
-  try {
-    emailError.value = /\S+@\S+\.\S+/.test(email.value.trim()) ? '' : 'Enter a valid email'
-    passwordError.value = password.value.length >= 6 ? '' : 'Password must be at least 6 characters'
-    if (emailError.value || passwordError.value) return
-    loading.value = true
+  emailError.value = /\S+@\S+\.\S+/.test(email.value.trim()) ? '' : 'Enter a valid email'
+  passwordError.value = password.value.length >= 6 ? '' : 'Password must be at least 6 characters'
+  if (emailError.value || passwordError.value) return
+
+  const ok = await run(async () => {
     const cred = await createUserWithEmailAndPassword(auth, email.value.trim(), password.value)
     if (fullName.value.trim()) {
       await updateProfile(cred.user, { displayName: fullName.value.trim() })
     }
-    const token = await getIdToken(cred.user, true)
+    const token = await getIdTokenForUser(cred.user, true)
     await registerProfile(token)
     await redirectAfterAuth(token)
-  } catch (e) {
+    return true
+  }, { fallbackMessage: 'Registration failed' })
+
+  if (!ok) {
+    const e = lastException.value
     errorFields.value = e?.fields || e?.data?.fields || null
-    error.value = formatApiError(e) || 'Registration failed'
-  } finally {
-    loading.value = false
   }
 }
 
 async function registerWithGoogle() {
-  error.value = ''
+
+  clearError()
   errorFields.value = null
-  try {
-    loading.value = true
+  const ok = await run(async () => {
     const cred = await signInWithPopup(auth, googleProvider)
-    const token = await getIdToken(cred.user, true)
+    const token = await getIdTokenForUser(cred.user, true)
     await registerProfile(token)
     await redirectAfterAuth(token)
-  } catch (e) {
+    return true
+  }, { fallbackMessage: 'Google sign-in failed' })
+
+  if (!ok) {
+    const e = lastException.value
     errorFields.value = e?.fields || e?.data?.fields || null
-    error.value = formatApiError(e) || 'Google sign-in failed'
-  } finally {
-    loading.value = false
   }
 }
 </script>

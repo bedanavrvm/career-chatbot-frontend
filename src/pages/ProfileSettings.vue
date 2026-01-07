@@ -2,13 +2,40 @@
 import { ref, reactive, onMounted, computed } from 'vue'
 import { useRouter } from 'vue-router'
 import { ArrowLeft } from 'lucide-vue-next'
-import { auth } from '../lib/firebase'
-import { getIdToken } from 'firebase/auth'
 import { onboardingMe, onboardingSave } from '../lib/api'
+import { useAuth } from '../lib/useAuth'
+import { useApiCall } from '../utils/useApiCall'
+import { confirmDialog } from '../utils/confirmDialog'
+import { toastSuccess } from '../utils/toast'
+import { invalidateOnboardingStatusCache } from '../utils/onboardingStatus'
+import { useProfile } from '../utils/useProfile'
+import { computeHsValidation } from '../utils/kcseValidation'
+import CareerGoalsInput from '../components/profile/CareerGoalsInput.vue'
+import EducationTabHighSchool from '../components/profile/EducationTabHighSchool.vue'
+import EducationTabCollege from '../components/profile/EducationTabCollege.vue'
+
+import {
+  KCSE_GRADES,
+  KNEC_MIN_SUBJECTS,
+  KNEC_MAX_SUBJECTS,
+  KNEC_MANDATORY,
+  KNEC_LANGUAGES,
+  ALL_KCSE_SUBJECTS,
+  subjectByCode,
+} from './onboarding/kcseSubjects'
 
 const router = useRouter()
-const loading = ref(false)
-const error = ref('')
+const { user, getIdToken } = useAuth()
+const { loading, error, run, clearError } = useApiCall({ toastErrors: true })
+const { set: setProfileCache } = useProfile()
+
+const activeTab = ref('user')
+const TABS = [
+  { id: 'user', label: 'User' },
+  { id: 'education', label: 'Education' },
+  { id: 'lifestyle', label: 'Lifestyle' },
+  { id: 'riasec', label: 'RIASEC' },
+]
 
 const COUNTRIES = [
   'Kenya','Uganda','Tanzania','Rwanda','Burundi','South Sudan','Ethiopia','Somalia','Democratic Republic of the Congo',
@@ -25,6 +52,10 @@ const universal = reactive({
 })
 
 const careerGoalDraft = ref('')
+
+function setCareerGoalDraft(v) {
+  careerGoalDraft.value = String(v || '')
+}
 
 function _normGoal(s) {
   return String(s || '').trim()
@@ -46,49 +77,7 @@ function removeCareerGoal(g) {
 
 const educationLevel = ref('')
 
-const KCSE_GRADES = ['A', 'A-', 'B+', 'B', 'B-', 'C+', 'C', 'C-', 'D+', 'D', 'D-', 'E']
-const KNEC_MIN_SUBJECTS = 7
-const KNEC_MAX_SUBJECTS = 9
-const KNEC_MANDATORY = ['MAT']
-const KNEC_LANGUAGES = ['ENG', 'KIS', 'KSL']
-
-const ALL_KCSE_SUBJECTS = [
-  { code: 'ENG', name: 'English', group: 'Languages' },
-  { code: 'KIS', name: 'Kiswahili', group: 'Languages' },
-  { code: 'KSL', name: 'Kenya Sign Language', group: 'Languages' },
-  { code: 'MAT', name: 'Mathematics', group: 'Core' },
-  { code: 'BIO', name: 'Biology', group: 'Sciences' },
-  { code: 'CHE', name: 'Chemistry', group: 'Sciences' },
-  { code: 'PHY', name: 'Physics', group: 'Sciences' },
-  { code: 'GSC', name: 'General Science', group: 'Sciences' },
-  { code: 'GEO', name: 'Geography', group: 'Humanities' },
-  { code: 'HIS', name: 'History and Government', group: 'Humanities' },
-  { code: 'CRE', name: 'Christian Religious Education', group: 'Humanities' },
-  { code: 'IRE', name: 'Islamic Religious Education', group: 'Humanities' },
-  { code: 'HRE', name: 'Hindu Religious Education', group: 'Humanities' },
-  { code: 'AGR', name: 'Agriculture', group: 'Applied' },
-  { code: 'BST', name: 'Business Studies', group: 'Applied' },
-  { code: 'CSC', name: 'Computer Studies', group: 'Applied' },
-  { code: 'HSC', name: 'Home Science', group: 'Applied' },
-  { code: 'ART', name: 'Art and Design', group: 'Applied' },
-  { code: 'WWK', name: 'Woodwork', group: 'Applied' },
-  { code: 'MWK', name: 'Metalwork', group: 'Applied' },
-  { code: 'BCN', name: 'Building Construction', group: 'Applied' },
-  { code: 'PME', name: 'Power Mechanics', group: 'Applied' },
-  { code: 'ELC', name: 'Electricity', group: 'Applied' },
-  { code: 'DRW', name: 'Drawing and Design', group: 'Applied' },
-  { code: 'AVT', name: 'Aviation Technology', group: 'Applied' },
-  { code: 'FRE', name: 'French', group: 'Languages' },
-  { code: 'GER', name: 'German', group: 'Languages' },
-  { code: 'ARB', name: 'Arabic', group: 'Languages' },
-  { code: 'MUS', name: 'Music', group: 'Applied' },
-]
-
-const _KCSE_SUBJECT_BY_CODE = (() => {
-  const m = {}
-  for (const s of ALL_KCSE_SUBJECTS) m[s.code] = s
-  return m
-})()
+const _KCSE_SUBJECT_BY_CODE = subjectByCode()
 
 const hs = reactive({
   kcse_mean_grade: '',
@@ -99,8 +88,19 @@ const hs = reactive({
 
 const hsSubjectQuery = ref('')
 
-function _normGrade(g) {
-  return String(g || '').trim().toUpperCase().replace(/\s+/g, '')
+function setHsSubjectQuery(v) {
+  hsSubjectQuery.value = String(v || '')
+}
+
+function setHsMeanGrade(v) {
+  hs.kcse_mean_grade = String(v || '')
+}
+
+function setHsSubjectGrade(code, grade) {
+  const c = String(code || '').trim().toUpperCase()
+  if (!c) return
+  if (!hs.subject_grades || typeof hs.subject_grades !== 'object') hs.subject_grades = {}
+  hs.subject_grades[c] = String(grade || '')
 }
 
 function hsAddSubject(code) {
@@ -171,21 +171,15 @@ const hsAvailableSubjects = computed(() => {
 })
 
 const hsValidation = computed(() => {
-  const codes = (Array.isArray(hs.subject_codes) ? hs.subject_codes : []).map((x) => String(x || '').toUpperCase())
-  const n = codes.length
-  const hasMandatory = KNEC_MANDATORY.every((c) => codes.includes(c))
-  const hasLanguage = codes.some((c) => KNEC_LANGUAGES.includes(c))
-  const grades = (hs.subject_grades && typeof hs.subject_grades === 'object') ? hs.subject_grades : {}
-  const missingGrades = codes.filter((c) => !KCSE_GRADES.includes(_normGrade(grades[c])))
-  const okCount = n >= KNEC_MIN_SUBJECTS && n <= KNEC_MAX_SUBJECTS
-  return {
-    n,
-    okCount,
-    hasMandatory,
-    hasLanguage,
-    missingGrades,
-    ok: okCount && hasMandatory && hasLanguage && missingGrades.length === 0,
-  }
+  return computeHsValidation({
+    subjectCodes: hs.subject_codes,
+    subjectGrades: hs.subject_grades,
+    kcseGrades: KCSE_GRADES,
+    knecMinSubjects: KNEC_MIN_SUBJECTS,
+    knecMaxSubjects: KNEC_MAX_SUBJECTS,
+    knecMandatory: KNEC_MANDATORY,
+    knecLanguages: KNEC_LANGUAGES,
+  })
 })
 
 const uni = reactive({
@@ -193,6 +187,11 @@ const uni = reactive({
   field_of_study: '',
   current_status: '',
 })
+
+function setUniField({ key, value }) {
+  if (!key) return
+  uni[key] = value
+}
 
 const lifestyle = reactive({
   workEnvironment: '',
@@ -205,50 +204,43 @@ const preferences = reactive({
   notes: '',
 })
 
-function list(csv) {
-  return String(csv || '')
-    .split(',')
-    .map((s) => s.trim())
-    .filter(Boolean)
-}
-
 async function token() {
-  const u = auth.currentUser
+  const u = user.value
   if (!u) throw new Error('Not authenticated')
-  return getIdToken(u, true)
+  const t = await getIdToken(true)
+  if (!t) throw new Error('Not authenticated')
+  return t
 }
 
 async function load() {
-  try {
-    loading.value = true
+  const data = await run(async () => {
     const t = await token()
-    const data = await onboardingMe(t)
-    educationLevel.value = data?.education_level || ''
-    Object.assign(universal, data?.universal || {})
-    Object.assign(hs, data?.high_school || {})
-    Object.assign(uni, data?.college || {})
-    Object.assign(lifestyle, data?.lifestyle || {})
-    Object.assign(preferences, data?.preferences || {})
-    if (!universal.careerGoals && universal.career_goals) universal.careerGoals = universal.career_goals
-    if (!lifestyle.workEnvironment && lifestyle.work_environment) lifestyle.workEnvironment = lifestyle.work_environment
-    if (!lifestyle.workSchedule && lifestyle.work_schedule) lifestyle.workSchedule = lifestyle.work_schedule
-    if (!universal.country) universal.country = 'Kenya'
-    if (typeof universal.careerGoals === 'string') {
-      const s = String(universal.careerGoals || '').trim()
-      universal.careerGoals = s ? s.split(',').map((x) => x.trim()).filter(Boolean) : []
-    }
-    if (!Array.isArray(universal.careerGoals)) universal.careerGoals = []
-  } catch (e) {
-    error.value = e?.message || 'Failed to load profile'
-  } finally {
-    loading.value = false
+    return onboardingMe(t)
+  }, { fallbackMessage: 'Failed to load profile' })
+  if (!data) return
+
+  setProfileCache(data)
+
+  educationLevel.value = data?.education_level || ''
+  Object.assign(universal, data?.universal || {})
+  Object.assign(hs, data?.high_school || {})
+  Object.assign(uni, data?.college || {})
+  Object.assign(lifestyle, data?.lifestyle || {})
+  Object.assign(preferences, data?.preferences || {})
+  if (!universal.careerGoals && universal.career_goals) universal.careerGoals = universal.career_goals
+  if (!lifestyle.workEnvironment && lifestyle.work_environment) lifestyle.workEnvironment = lifestyle.work_environment
+  if (!lifestyle.workSchedule && lifestyle.work_schedule) lifestyle.workSchedule = lifestyle.work_schedule
+  if (!universal.country) universal.country = 'Kenya'
+  if (typeof universal.careerGoals === 'string') {
+    const s = String(universal.careerGoals || '').trim()
+    universal.careerGoals = s ? s.split(',').map((x) => x.trim()).filter(Boolean) : []
   }
+  if (!Array.isArray(universal.careerGoals)) universal.careerGoals = []
 }
 
 async function save() {
-  try {
-    error.value = ''
-    loading.value = true
+  clearError()
+  const ok = await run(async () => {
     const t = await token()
     const payload = {
       education_level: educationLevel.value,
@@ -267,17 +259,36 @@ async function save() {
       lifestyle: { ...lifestyle },
       preferences: { ...preferences },
     }
+
     await onboardingSave(t, payload)
-    router.replace('/dashboard')
-  } catch (e) {
-    error.value = e?.message || 'Save failed'
-  } finally {
-    loading.value = false
-  }
+
+    setProfileCache({ ...(payload || {}), status: 'incomplete' })
+
+    const uid = user.value?.uid || ''
+    if (uid) invalidateOnboardingStatusCache(uid)
+
+    return true
+  }, { fallbackMessage: 'Save failed' })
+
+  if (!ok) return
+  toastSuccess('Saved changes')
+  router.replace('/dashboard')
+}
+
+async function confirmReset() {
+  const ok = await confirmDialog({
+    title: 'Reset changes?',
+    message: 'This will discard your unsaved edits and reload your saved profile data.',
+    confirmText: 'Reset',
+    cancelText: 'Cancel',
+    destructive: true,
+  })
+  if (!ok) return
+  await load()
 }
 
 onMounted(async () => {
-  if (auth.currentUser?.displayName && !universal.fullName) universal.fullName = auth.currentUser.displayName
+  if (user.value?.displayName && !universal.fullName) universal.fullName = user.value.displayName
   await load()
 })
 </script>
@@ -303,8 +314,25 @@ onMounted(async () => {
 
     <p v-if="error" class="mt-3 text-sm text-red-600">{{ error }}</p>
 
-    <section class="mt-6 grid grid-cols-1 lg:grid-cols-2 gap-6">
-      <div class="card p-4 space-y-4">
+    <div class="mt-6 border-b border-gray-200">
+      <div class="flex flex-wrap gap-2" role="tablist" aria-label="Profile sections">
+        <button
+          v-for="t in TABS"
+          :key="t.id"
+          type="button"
+          role="tab"
+          :aria-selected="activeTab === t.id"
+          :class="[
+            'px-4 py-2 rounded-t-lg border border-b-0 text-sm font-medium transition-colors',
+            activeTab === t.id ? 'bg-white border-gray-200 text-gray-900' : 'bg-gray-50 border-transparent text-gray-600 hover:text-gray-900 hover:bg-gray-100',
+          ]"
+          @click="activeTab = t.id"
+        >{{ t.label }}</button>
+      </div>
+    </div>
+
+    <section class="mt-6">
+      <div v-show="activeTab === 'user'" role="tabpanel" class="card p-4 space-y-4">
         <h2 class="text-lg font-semibold">User profile</h2>
         <div>
           <label class="label">Full Name</label>
@@ -336,33 +364,20 @@ onMounted(async () => {
             <input v-model="universal.region" class="input input-lg w-full" />
           </div>
         </div>
-        <div>
-          <label class="label">Career Goals</label>
-          <div class="flex flex-col gap-2">
-            <div class="flex gap-2">
-              <input v-model="careerGoalDraft" class="input input-lg w-full" @keydown.enter.prevent="addCareerGoal" />
-              <button type="button" class="btn btn-outline btn-lg" @click="addCareerGoal">Add</button>
-            </div>
-            <div class="flex flex-wrap gap-2">
-              <span
-                v-for="g in (universal.careerGoals || [])"
-                :key="g"
-                class="inline-flex items-center gap-2 rounded-full border border-gray-200 bg-gray-50 px-3 py-1 text-sm"
-              >
-                <span>{{ g }}</span>
-                <button type="button" class="text-xs text-gray-600" @click="removeCareerGoal(g)">Remove</button>
-              </span>
-              <span v-if="!(universal.careerGoals || []).length" class="text-sm text-gray-500">—</span>
-            </div>
-          </div>
-        </div>
+        <CareerGoalsInput
+          :careerGoals="universal.careerGoals"
+          :draft="careerGoalDraft"
+          @set-draft="setCareerGoalDraft"
+          @add="addCareerGoal"
+          @remove="removeCareerGoal"
+        />
       </div>
 
-      <div class="card p-4 space-y-4">
+      <div v-show="activeTab === 'education'" role="tabpanel" class="card p-3 space-y-3">
         <h2 class="text-lg font-semibold">Education level</h2>
         <div>
           <label class="label">Highest education level</label>
-          <select v-model="educationLevel" class="input input-lg w-full">
+          <select v-model="educationLevel" class="input input-md w-full">
             <option value="">Select</option>
             <option value="high_school">High School</option>
             <option value="college_student">College Student</option>
@@ -371,99 +386,32 @@ onMounted(async () => {
         </div>
 
         <template v-if="educationLevel==='high_school'">
-          <div>
-            <label class="label">KCSE Mean Grade</label>
-            <select v-model="hs.kcse_mean_grade" class="input input-lg w-full">
-              <option value="">Select</option>
-              <option v-for="g in KCSE_GRADES" :key="g">{{ g }}</option>
-            </select>
-          </div>
-
-          <div class="card p-4" @dragover.prevent @drop.prevent="hsOnDrop">
-            <div class="flex items-center justify-between gap-3">
-              <div>
-                <div class="text-lg font-semibold">KCSE subjects & grades</div>
-                <div class="text-sm text-gray-600">Requirements: {{ KNEC_MIN_SUBJECTS }}–{{ KNEC_MAX_SUBJECTS }} subjects, include Mathematics and at least one language.</div>
-              </div>
-              <input v-model="hsSubjectQuery" class="input input-md" placeholder="Search…" />
-            </div>
-
-            <div class="mt-4 flex flex-wrap gap-2">
-              <button
-                v-for="s in hsAvailableSubjects"
-                :key="s.code"
-                type="button"
-                class="chip-btn"
-                draggable="true"
-                @dragstart="(e) => hsOnDragStart(e, s.code)"
-                @click="hsAddSubject(s.code)"
-              >{{ s.name }}</button>
-            </div>
-
-            <div v-if="(hs.subject_codes || []).length" class="mt-4 space-y-2">
-              <div
-                v-for="code in (hs.subject_codes || [])"
-                :key="code"
-                class="flex flex-col gap-2 rounded-xl border border-gray-100 p-3 md:flex-row md:items-center md:justify-between"
-              >
-                <div class="min-w-0">
-                  <div class="font-medium text-gray-900">{{ _KCSE_SUBJECT_BY_CODE[code]?.name || code }}</div>
-                  <div class="text-xs text-gray-500">{{ code }} · {{ _KCSE_SUBJECT_BY_CODE[code]?.group || 'Subject' }}</div>
-                </div>
-                <div class="flex flex-wrap items-center gap-2">
-                  <select
-                    class="input input-md"
-                    :value="hs.subject_grades?.[code] || ''"
-                    @change="(e) => (hs.subject_grades[code] = e?.target?.value || '')"
-                  >
-                    <option value="">Grade</option>
-                    <option v-for="g in KCSE_GRADES" :key="g" :value="g">{{ g }}</option>
-                  </select>
-
-                  <button
-                    type="button"
-                    class="px-3 py-2 rounded-lg border text-sm transition-all hover:shadow-sm active:scale-[0.99]"
-                    :class="hsIsFavorite(code) ? 'border-brand bg-brand text-white' : 'border-gray-200 bg-white text-gray-700'"
-                    @click="hsToggleFavorite(code)"
-                  >Favourite</button>
-
-                  <button type="button" class="px-3 py-2 rounded-lg border border-gray-200 bg-white text-sm transition-all hover:bg-gray-50 hover:shadow-sm active:scale-[0.99]" @click="hsRemoveSubject(code)">Remove</button>
-                </div>
-              </div>
-            </div>
-
-            <div class="mt-4 text-sm" :class="hsValidation.ok ? 'text-green-700' : 'text-gray-700'">
-              <div><span class="font-medium">Selected:</span> {{ hsValidation.n }} / {{ KNEC_MAX_SUBJECTS }}</div>
-              <div><span class="font-medium">Math:</span> {{ hsValidation.hasMandatory ? 'OK' : 'Missing' }}</div>
-              <div><span class="font-medium">Language:</span> {{ hsValidation.hasLanguage ? 'OK' : 'Missing' }}</div>
-              <div v-if="hsValidation.missingGrades.length"><span class="font-medium">Grades missing for:</span> {{ hsValidation.missingGrades.join(', ') }}</div>
-            </div>
-          </div>
+          <EducationTabHighSchool
+            :hs="hs"
+            :kcseGrades="KCSE_GRADES"
+            :subjectByCode="_KCSE_SUBJECT_BY_CODE"
+            :hsAvailableSubjects="hsAvailableSubjects"
+            :hsValidation="hsValidation"
+            :hsSubjectQuery="hsSubjectQuery"
+            :knecMinSubjects="KNEC_MIN_SUBJECTS"
+            :knecMaxSubjects="KNEC_MAX_SUBJECTS"
+            @set-hs-subject-query="setHsSubjectQuery"
+            @set-hs-kcse-mean-grade="setHsMeanGrade"
+            @set-hs-subject-grade="setHsSubjectGrade"
+            @add-subject="hsAddSubject"
+            @remove-subject="hsRemoveSubject"
+            @toggle-favorite="hsToggleFavorite"
+            @drag-start="hsOnDragStart"
+            @drop="hsOnDrop"
+          />
         </template>
 
         <template v-else-if="educationLevel">
-          <div>
-            <label class="label">Qualification</label>
-            <select v-model="uni.qualification" class="input input-lg w-full">
-              <option value="">Select</option>
-              <option>Certificate</option><option>Diploma</option><option>Bachelor's</option><option>Master's</option>
-            </select>
-          </div>
-          <div>
-            <label class="label">Field of Study</label>
-            <input v-model="uni.field_of_study" class="input input-lg w-full" />
-          </div>
-          <div>
-            <label class="label">Current Status</label>
-            <select v-model="uni.current_status" class="input input-lg w-full">
-              <option value="">Select</option>
-              <option>Still Studying</option><option>Graduate</option><option>Job Seeking</option><option>Employed</option>
-            </select>
-          </div>
+          <EducationTabCollege :uni="uni" @set-uni="setUniField" />
         </template>
       </div>
 
-      <div class="card p-4 space-y-4 lg:col-span-2">
+      <div v-show="activeTab === 'lifestyle'" role="tabpanel" class="card p-4 space-y-4">
         <h2 class="text-lg font-semibold">Lifestyle & work preferences</h2>
         <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
           <div>
@@ -501,7 +449,7 @@ onMounted(async () => {
         </div>
       </div>
 
-      <div class="card p-4 lg:col-span-2">
+      <div v-show="activeTab === 'riasec'" role="tabpanel" class="card p-4">
         <h2 class="text-lg font-semibold">RIASEC interests</h2>
         <p class="mt-2 text-sm text-gray-600">RIASEC is collected during onboarding and is used to guide recommendations.</p>
         <p class="mt-1 text-sm text-gray-600">To change your RIASEC, re-run onboarding.</p>
@@ -510,7 +458,7 @@ onMounted(async () => {
 
     <div class="mt-6 flex gap-3">
       <button class="btn btn-primary btn-lg" :disabled="loading" @click="save">Save changes</button>
-      <button class="btn btn-secondary btn-lg" :disabled="loading" @click="load">Reset</button>
+      <button class="btn btn-secondary btn-lg" :disabled="loading" @click="confirmReset">Reset</button>
     </div>
   </main>
 </template>

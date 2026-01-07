@@ -88,25 +88,51 @@ async function parseJson (res, { url = '', method = '' } = {}) {
   return data
 }
 
+function sleep (ms) {
+  return new Promise((resolve) => setTimeout(resolve, Math.max(0, Number(ms || 0))))
+}
+
 async function request (url, options = {}) {
   const timeoutMs = Number(options.timeoutMs || 30000)
-  const { timeoutMs: _timeoutIgnored, ...fetchOptions } = options || {}
+  const retries = Number(options.retries || 0)
+  const retryDelayMs = Number(options.retryDelayMs || 400)
+  const retryStatus = Array.isArray(options.retryStatus) ? options.retryStatus : [502, 503, 504]
+  const { timeoutMs: _timeoutIgnored, retries: _retriesIgnored, retryDelayMs: _retryDelayIgnored, retryStatus: _retryStatusIgnored, ...fetchOptions } = options || {}
   const method = fetchOptions.method || 'GET'
 
-  const controller = new AbortController()
-  const timer = setTimeout(() => controller.abort(), Math.max(0, timeoutMs))
-  try {
-    const res = await fetch(url, { ...fetchOptions, signal: controller.signal })
-    return await parseJson(res, { url, method })
-  } catch (e) {
-    if (e?.name === 'AbortError') {
-      throw new ApiError('Request timed out', { status: 0, data: null, url, method })
+  let lastErr = null
+  for (let attempt = 0; attempt <= Math.max(0, retries); attempt++) {
+    const controller = new AbortController()
+    const timer = setTimeout(() => controller.abort(), Math.max(0, timeoutMs))
+    try {
+      const res = await fetch(url, { ...fetchOptions, signal: controller.signal })
+      return await parseJson(res, { url, method })
+    } catch (e) {
+      lastErr = e
+
+      const isTimeout = e?.name === 'AbortError'
+      const isApi = e instanceof ApiError
+      const status = isApi ? Number(e.status || 0) : 0
+      const canRetry = attempt < Math.max(0, retries) && !isTimeout && (
+        (isApi && retryStatus.includes(status)) || (!isApi)
+      )
+
+      if (isTimeout) {
+        throw new ApiError('Request timed out', { status: 0, data: null, url, method })
+      }
+      if (!canRetry) {
+        if (isApi) throw e
+        throw new ApiError(e?.message || 'Network error', { status: 0, data: null, url, method })
+      }
+    } finally {
+      clearTimeout(timer)
     }
-    if (e instanceof ApiError) throw e
-    throw new ApiError(e?.message || 'Network error', { status: 0, data: null, url, method })
-  } finally {
-    clearTimeout(timer)
+
+    await sleep(retryDelayMs * Math.max(1, attempt + 1))
   }
+
+  if (lastErr instanceof ApiError) throw lastErr
+  throw new ApiError('Network error', { status: 0, data: null, url, method })
 }
 
 export async function securePing(idToken) {

@@ -2,23 +2,21 @@
 import { ref, onMounted } from 'vue'
 import { useAuth } from '../lib/useAuth'
 import { meProfile } from '../lib/api'
+import { useApiCall } from '../utils/useApiCall'
 
 const { user, getIdToken, waitForAuthReady } = useAuth()
 const profile = ref(null)
-const loading = ref(true)
-const error = ref('')
+const { loading, error, run } = useApiCall({ toastErrors: false })
 
 onMounted(async () => {
   await waitForAuthReady()
   if (user.value) {
-    try {
+    const data = await run(async () => {
       const token = await getIdToken(true)
-      profile.value = await meProfile(token)
-    } catch (e) {
-      error.value = e?.message || 'Failed to load profile'
-    }
+      return meProfile(token)
+    }, { fallbackMessage: 'Failed to load profile', silent: true })
+    if (data) profile.value = data
   }
-  loading.value = false
 })
 </script>
 

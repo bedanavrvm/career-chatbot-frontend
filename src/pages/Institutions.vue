@@ -3,11 +3,11 @@ import { ref, onMounted, watch, onBeforeUnmount } from 'vue'
 import { useRouter } from 'vue-router'
 import { Search, Building2, ExternalLink, MapPin } from 'lucide-vue-next'
 import { etlGetInstitutions } from '../lib/api'
+import { useApiCall } from '../utils/useApiCall'
 
 const router = useRouter()
 
-const loading = ref(false)
-const error = ref('')
+const { loading, error, run, clearError } = useApiCall({ toastErrors: true })
 const q = ref('')
 const region = ref('')
 const county = ref('')
@@ -19,32 +19,26 @@ let activeRequestId = 0
 
 async function load ({ clearResults = false } = {}) {
   const requestId = ++activeRequestId
-  try {
-    loading.value = true
-    error.value = ''
-    if (clearResults) {
-      data.value = { count: 0, results: [] }
-    }
-    const res = await etlGetInstitutions({
+  clearError()
+  if (clearResults) {
+    data.value = { count: 0, results: [] }
+  }
+  const res = await run(async () => {
+    return etlGetInstitutions({
       q: (q.value || '').trim(),
       region: (region.value || '').trim(),
       county: (county.value || '').trim(),
     })
-    if (requestId !== activeRequestId) return
-    data.value = res || { count: 0, results: [] }
-  } catch (e) {
-    if (requestId !== activeRequestId) return
-    error.value = e?.message || 'Failed to load institutions'
-  } finally {
-    if (requestId === activeRequestId) loading.value = false
-  }
+  }, { fallbackMessage: 'Failed to load institutions', silent: true })
+  if (requestId !== activeRequestId) return
+  if (!res) return
+  data.value = res || { count: 0, results: [] }
 }
 
 function scheduleLoad () {
   if (searchTimer) clearTimeout(searchTimer)
   const requestId = ++activeRequestId
-  error.value = ''
-  loading.value = true
+  clearError()
   data.value = { count: 0, results: [] }
   searchTimer = setTimeout(() => {
     load({ clearResults: false, requestId })
@@ -122,6 +116,14 @@ onMounted(load)
     <p v-if="error" class="mt-3 text-sm text-red-600">{{ error }}</p>
 
     <div class="mt-6 grid grid-cols-1 gap-3">
+      <div v-if="loading && !(data?.results || []).length" class="grid grid-cols-1 gap-3">
+        <div v-for="i in 6" :key="i" class="card p-4 animate-pulse">
+          <div class="h-4 w-2/3 bg-gray-200 rounded"></div>
+          <div class="mt-2 h-3 w-1/2 bg-gray-200 rounded"></div>
+          <div class="mt-3 h-3 w-3/4 bg-gray-100 rounded"></div>
+        </div>
+      </div>
+
       <div
         v-for="(inst, idx) in (data?.results || [])"
         :key="`${inst.code || ''}:${inst.name || ''}:${idx}`"
