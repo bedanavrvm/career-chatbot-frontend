@@ -113,7 +113,28 @@ const answersBreakdown = computed(() => {
     </div>
 
     <p v-if="error" class="mt-3 text-sm text-red-600">{{ error }}</p>
-    <div v-else-if="loading" class="mt-4 text-sm text-gray-600">Loading…</div>
+    <div v-else-if="loading" class="mt-6 space-y-6 animate-pulse">
+      <div class="card p-4">
+        <div class="h-5 bg-gray-200 rounded w-32"></div>
+        <div class="mt-3 h-16 bg-gray-100 rounded"></div>
+      </div>
+      <div class="card p-4">
+        <div class="h-5 bg-gray-200 rounded w-32"></div>
+        <div class="mt-3 h-10 bg-gray-100 rounded"></div>
+      </div>
+      <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        <div class="card p-4">
+          <div class="h-5 bg-gray-200 rounded w-32"></div>
+          <div class="mt-4 space-y-3">
+            <div v-for="i in 4" :key="i" class="h-16 bg-gray-100 rounded"></div>
+          </div>
+        </div>
+        <div class="card p-4">
+          <div class="h-5 bg-gray-200 rounded w-40"></div>
+          <div class="mt-4 h-40 bg-gray-100 rounded"></div>
+        </div>
+      </div>
+    </div>
 
     <div v-else class="mt-6 space-y-6">
       <div class="card p-4">

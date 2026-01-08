@@ -135,7 +135,26 @@ function campusLabel(c) {
     </div>
 
     <p v-if="error" class="mt-3 text-sm text-red-600">{{ error }}</p>
-    <div v-else-if="loading" class="mt-4 text-sm text-gray-600">Loading…</div>
+    <div v-else-if="loading" class="mt-6 space-y-6 animate-pulse">
+      <div class="grid grid-cols-1 xl:grid-cols-2 gap-6">
+        <div class="card p-4">
+          <div class="h-5 bg-gray-200 rounded w-32"></div>
+          <div class="mt-4 grid grid-cols-1 sm:grid-cols-2 gap-3">
+            <div v-for="i in 4" :key="i" class="h-12 bg-gray-100 rounded"></div>
+          </div>
+        </div>
+        <div class="card p-4">
+          <div class="h-5 bg-gray-200 rounded w-28"></div>
+          <div class="mt-4 h-56 bg-gray-100 rounded"></div>
+        </div>
+      </div>
+      <div class="card p-4">
+        <div class="h-5 bg-gray-200 rounded w-28"></div>
+        <div class="mt-4 space-y-2">
+          <div v-for="i in 6" :key="i" class="h-12 bg-gray-100 rounded"></div>
+        </div>
+      </div>
+    </div>
 
     <div
       v-else-if="inst"

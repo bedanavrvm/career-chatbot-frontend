@@ -1,8 +1,8 @@
 <script setup>
-import { ref, computed, onMounted, nextTick, watch } from 'vue'
+import { ref, computed, onMounted, onBeforeUnmount, nextTick, watch } from 'vue'
 import { useRouter } from 'vue-router'
 import { convGetSession, convPostMessage, convDeleteSession, convGetRecommendations, catalogStatus } from '../lib/api'
-import { Plus, Trash2, RefreshCw, Send } from 'lucide-vue-next'
+import { Plus, Trash2, RefreshCw, Send, ChevronDown, Sparkles } from 'lucide-vue-next'
 import { useAuth } from '../lib/useAuth'
 import { useApiCall } from '../utils/useApiCall'
 
@@ -56,15 +56,49 @@ const providerStorageKey = computed(() => {
 const sessionId = ref(localStorage.getItem(storageKey.value) || uuidv4())
 const nlpProvider = ref(localStorage.getItem(providerStorageKey.value) || 'local')
 const input = ref('')
+const inputEl = ref(null)
 const sending = ref(false)
 const error = ref('')
 const conversation = ref({ id: '', fsm_state: '', messages: [], slots: {} })
 const recs = ref([])
 const stretchRecs = ref([])
 const recsError = ref('')
+const recsLoading = ref(false)
+const recsK = ref(10)
+const recsMax = 50
 const scroller = ref(null)
 const activeCitation = ref('')
 const systemStatus = ref(null)
+
+const trySuggestions = [
+  'Here are my grades: Math A-, English B+… What courses fit me?',
+  'I like computers and design. Suggest programs and careers.',
+  'Suggest programs near Nairobi for a B plain.',
+]
+
+const tryIndex = ref(0)
+let tryIntervalId = null
+
+const activeTry = computed(() => trySuggestions[tryIndex.value] || '')
+
+function applyHint(text) {
+  input.value = String(text || '')
+  nextTick(() => {
+    inputEl.value?.focus?.()
+  })
+}
+
+function showMoreRecs() {
+  if (recsK.value >= recsMax) return
+  recsK.value = Math.min(recsMax, recsK.value + 10)
+  loadRecommendations({ merge: true })
+}
+
+function resetRecsCount() {
+  if (recsK.value === 10) return
+  recsK.value = 10
+  loadRecommendations()
+}
 
 const mode = computed(() => {
   // Prefer latest assistant message provider; fallback to any last message provider
@@ -90,6 +124,13 @@ const requestedMode = computed(() => {
   if (p === 'gemini') return 'Gemini'
   if (p === 'local') return 'Local'
   return 'Auto'
+})
+
+const sessionShort = computed(() => {
+  const s = String(sessionId.value || '')
+  if (!s) return ''
+  if (s.length <= 14) return s
+  return `${s.slice(0, 8)}…${s.slice(-4)}`
 })
 
 const useGemini = computed({
@@ -184,17 +225,56 @@ async function loadSession () {
   }
 }
 
-async function loadRecommendations () {
+function recKey (r) {
+  const k = r?.program_id || r?.program_code || r?.program_name || ''
+  return String(k).trim().toLowerCase()
+}
+
+function mergeUnique (base, extra, limit) {
+  const out = []
+  const seen = new Set()
+  const a = Array.isArray(base) ? base : []
+  const b = Array.isArray(extra) ? extra : []
+
+  for (const it of a) {
+    const key = recKey(it)
+    if (!key || seen.has(key)) continue
+    seen.add(key)
+    out.push(it)
+    if (limit && out.length >= limit) return out
+  }
+  for (const it of b) {
+    const key = recKey(it)
+    if (!key || seen.has(key)) continue
+    seen.add(key)
+    out.push(it)
+    if (limit && out.length >= limit) return out
+  }
+  return out
+}
+
+async function loadRecommendations ({ merge = false } = {}) {
   recsError.value = ''
+  recsLoading.value = true
   try {
-    const data = await convGetRecommendations(idToken.value, sessionId.value, { k: 10 })
-    recs.value = data?.recommendations || []
-    stretchRecs.value = data?.stretch_recommendations || []
+    const data = await convGetRecommendations(idToken.value, sessionId.value, { k: recsK.value })
+    const nextRecs = data?.recommendations || []
+    const nextStretch = data?.stretch_recommendations || []
+
+    if (merge) {
+      recs.value = mergeUnique(recs.value, nextRecs, recsK.value)
+      stretchRecs.value = mergeUnique(stretchRecs.value, nextStretch, recsK.value)
+    } else {
+      recs.value = nextRecs
+      stretchRecs.value = nextStretch
+    }
   } catch (e) {
     // Do not hard-fail the chat if recommendations endpoint is unavailable
     recsError.value = e?.message || 'Failed to load recommendations'
     recs.value = []
     stretchRecs.value = []
+  } finally {
+    recsLoading.value = false
   }
 }
 
@@ -216,7 +296,17 @@ async function sendMessage () {
     conversation.value = resp.session
     input.value = ''
     await nextTick(); scrollToBottom()
-    await loadRecommendations()
+
+    const tr = resp?.turn_recommendations
+    if (tr && typeof tr === 'object') {
+      const k = Number(tr.k || 0)
+      if (k > 0) recsK.value = Math.min(recsMax, Math.max(1, k))
+      recs.value = Array.isArray(tr.recommendations) ? tr.recommendations : []
+      stretchRecs.value = Array.isArray(tr.stretch_recommendations) ? tr.stretch_recommendations : []
+    } else {
+      await loadRecommendations()
+    }
+    inputEl.value?.focus?.()
   } catch (e) {
     error.value = e?.message || 'Failed to send message'
   } finally {
@@ -243,23 +333,42 @@ onMounted(async () => {
   try {
     systemStatus.value = await catalogStatus()
   } catch (_) {}
+
+  tryIntervalId = setInterval(() => {
+    if (trySuggestions.length <= 1) return
+    tryIndex.value = (tryIndex.value + 1) % trySuggestions.length
+  }, 10000)
+})
+
+onBeforeUnmount(() => {
+  if (tryIntervalId) clearInterval(tryIntervalId)
+  tryIntervalId = null
 })
 </script>
 
 <template>
-  <main class="py-6 px-4 sm:px-6 lg:px-8">
-    <div class="mx-auto max-w-screen-2xl">
-      <h1 class="text-2xl font-bold text-gray-900">Conversation</h1>
-      <div class="flex flex-col md:flex-row md:items-center md:justify-between gap-2 mt-1">
-        <p class="text-sm text-gray-600">
-          Session: <span class="font-mono">{{ sessionId }}</span>
-          · State: <span class="font-mono">{{ conversation.fsm_state }}</span>
-          · Requested: <span class="font-semibold">{{ requestedMode }}</span>
-          · LLM: <span class="font-semibold">{{ mode }}</span>
-          <span v-if="retrievalMode"> · Retrieval: <span class="font-semibold">{{ retrievalMode }}</span></span>
-          <span v-if="modeError" class="text-red-600"> (provider error: {{ modeError }})</span>
-        </p>
-        <div class="flex flex-wrap items-center justify-end gap-2">
+  <main class="h-full box-border overflow-hidden py-4 px-4 sm:px-6 lg:px-8 flex flex-col min-h-0">
+    <div class="mx-auto max-w-screen-2xl flex flex-col min-h-0 flex-1">
+      <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2">
+        <div class="min-w-0">
+          <h1 class="text-xl font-bold text-gray-900">Conversation</h1>
+          <p class="text-xs text-gray-600 truncate">
+            <span class="hidden sm:inline">Session:</span>
+            <span class="font-mono" :title="sessionId">{{ sessionShort }}</span>
+            <span class="mx-1">·</span>
+            <span>State:</span> <span class="font-mono">{{ conversation.fsm_state }}</span>
+            <span class="hidden md:inline">
+              <span class="mx-1">·</span>
+              <span>Requested:</span> <span class="font-semibold">{{ requestedMode }}</span>
+              <span class="mx-1">·</span>
+              <span>LLM:</span> <span class="font-semibold">{{ mode }}</span>
+            </span>
+            <span v-if="retrievalMode" class="hidden lg:inline"> <span class="mx-1">·</span>Retrieval: <span class="font-semibold">{{ retrievalMode }}</span></span>
+            <span v-if="modeError" class="text-red-600"> (provider error: {{ modeError }})</span>
+          </p>
+        </div>
+
+        <div class="flex flex-wrap items-center justify-end gap-2 shrink-0">
           <label class="inline-flex items-center gap-2 text-sm text-gray-700 border rounded-lg bg-white/70 px-2 py-1.5 md:px-3 md:py-2 shrink-0">
             <span class="text-gray-600 hidden sm:inline">Local</span>
             <input type="checkbox" v-model="useGemini" class="h-4 w-4" />
@@ -291,28 +400,41 @@ onMounted(async () => {
         </div>
       </div>
 
-      <div class="mt-5 grid grid-cols-1 lg:grid-cols-5 gap-8">
-        <section class="lg:col-span-3">
-          <div class="border rounded-xl p-4 bg-white/60 flex flex-col h-[72vh]">
-            <div ref="scroller" class="flex-1 overflow-y-auto pr-2">
+      <div class="mt-3 grid grid-cols-1 lg:grid-cols-5 gap-8 min-h-0 flex-1">
+        <section class="lg:col-span-3 min-h-0">
+          <div class="border rounded-xl p-4 bg-white/60 flex flex-col h-full min-h-0">
+            <div ref="scroller" class="flex-1 overflow-y-auto pr-2 min-h-0">
               <div v-for="(m, idx) in conversation.messages" :key="idx" class="mb-3">
-                <div :class="['text-xs mb-1', m.role === 'assistant' ? 'text-brand-dark' : 'text-gray-500']">{{ m.role }}</div>
-                <div :class="['rounded-2xl px-4 py-2 whitespace-pre-wrap', m.role === 'assistant' ? 'bg-brand/10' : 'bg-gray-100']">
-                  <template v-for="(seg, sidx) in segmentsForMessage(m)" :key="sidx">
-                    <span v-if="seg.type === 'text'">{{ seg.value }}</span>
-                    <button
-                      v-else
-                      type="button"
-                      class="inline-flex items-center font-mono text-xs px-1 rounded bg-white/60 border border-gray-200 transition-all hover:bg-white hover:shadow-sm active:scale-95"
-                      @click="selectCitation(seg.value)"
-                    >[{{ seg.value }}]</button>
-                  </template>
+                <div :class="['flex', m.role === 'user' ? 'justify-end' : 'justify-start']">
+                  <div
+                    :class="[
+                      'max-w-[85%] sm:max-w-[75%] px-4 py-2 whitespace-pre-wrap break-words shadow-sm',
+                      m.role === 'user'
+                        ? 'bg-brand text-white rounded-2xl rounded-br-md'
+                        : 'bg-gray-100 text-gray-900 rounded-2xl rounded-bl-md'
+                    ]"
+                  >
+                    <template v-for="(seg, sidx) in segmentsForMessage(m)" :key="sidx">
+                      <span v-if="seg.type === 'text'">{{ seg.value }}</span>
+                      <button
+                        v-else
+                        type="button"
+                        :class="[
+                          'inline-flex items-center font-mono text-xs px-1.5 py-0.5 rounded border transition-all hover:shadow-sm active:scale-95',
+                          m.role === 'user'
+                            ? 'bg-white/15 border-white/25 text-white hover:bg-white/20'
+                            : 'bg-white/60 border-gray-200 text-gray-700 hover:bg-white'
+                        ]"
+                        @click="selectCitation(seg.value)"
+                      >[{{ seg.value }}]</button>
+                    </template>
+                  </div>
                 </div>
               </div>
             </div>
 
             <form class="mt-4 flex gap-2" @submit.prevent="sendMessage">
-              <input v-model="input" type="text" class="input flex-1" placeholder="Type a message... e.g., Math A-, English B+" />
+              <input ref="inputEl" v-model="input" type="text" class="input flex-1" placeholder="Ask for programs, requirements, or career guidance…" />
               <button
                 class="btn btn-primary rounded-2xl px-4 py-3 min-w-12 gap-2 shrink-0 transition-all hover:shadow-sm active:scale-[0.99] disabled:opacity-60"
                 type="submit"
@@ -326,33 +448,63 @@ onMounted(async () => {
               </button>
             </form>
 
-            <p v-if="error" class="text-sm text-red-600 mt-2">{{ error }}</p>
-          </div>
+            <div class="mt-2 flex items-center gap-2">
+              <div class="inline-flex items-center gap-1.5 text-[11px] text-gray-500 shrink-0">
+                <span>Try:</span>
+              </div>
+              <button
+                type="button"
+                class="chip-btn"
+                @click="applyHint(activeTry)"
+              >{{ activeTry }}</button>
+            </div>
 
-          <div class="mt-4 text-xs text-gray-500">
-            Tips: Share some grades (e.g., "Math A-, English B+"), then your interests (e.g., "I enjoy coding").
+            <p v-if="error" class="text-sm text-red-600 mt-2">{{ error }}</p>
           </div>
         </section>
 
-        <aside class="lg:col-span-2">
-          <div class="border rounded-xl p-4 bg-white/60 h-[72vh] overflow-y-auto lg:sticky lg:top-24">
+        <aside class="lg:col-span-2 min-h-0">
+          <div class="border rounded-xl p-4 bg-white/60 h-full min-h-0 overflow-y-auto">
             <div class="flex items-center justify-between">
               <h2 class="text-lg font-semibold text-gray-900">Recommendations</h2>
-              <button
-                class="btn btn-outline btn-sm gap-2 transition-all hover:bg-gray-50 hover:shadow-sm active:scale-[0.99]"
-                type="button"
-                title="Refresh"
-                aria-label="Refresh"
-                @click="loadRecommendations"
-              >
-                <RefreshCw class="h-4 w-4" />
-                <span class="hidden sm:inline">Refresh</span>
-                <span class="sr-only sm:hidden">Refresh</span>
-              </button>
+              <div class="flex items-center gap-2">
+                <button
+                  v-if="recsK > 10"
+                  class="btn btn-outline btn-sm"
+                  type="button"
+                  title="Show fewer"
+                  aria-label="Show fewer"
+                  @click="resetRecsCount"
+                >Less</button>
+                <button
+                  class="btn btn-outline btn-sm gap-2 transition-all hover:bg-gray-50 hover:shadow-sm active:scale-[0.99]"
+                  type="button"
+                  title="Refresh"
+                  aria-label="Refresh"
+                  @click="loadRecommendations"
+                >
+                  <RefreshCw class="h-4 w-4" />
+                  <span class="hidden sm:inline">Refresh</span>
+                  <span class="sr-only sm:hidden">Refresh</span>
+                </button>
+              </div>
             </div>
+
+            <div class="mt-2 text-xs text-gray-500">Showing up to {{ recsK }} results</div>
             <p v-if="recsError" class="text-sm text-red-600 mt-2">{{ recsError }}</p>
-            <div v-if="!recs.length" class="text-sm text-gray-600 mt-2">
-              No recommendations yet. Share your grades and interests to personalize results.
+            <div v-if="recsLoading && !recs.length" class="mt-3 grid grid-cols-1 gap-3">
+              <div v-for="i in 6" :key="i" class="card p-3 animate-pulse">
+                <div class="h-4 bg-gray-200 rounded w-3/4"></div>
+                <div class="mt-2 h-3 bg-gray-100 rounded w-2/3"></div>
+                <div class="mt-2 h-3 bg-gray-100 rounded w-1/2"></div>
+              </div>
+            </div>
+            <div v-else-if="!recs.length" class="text-sm text-gray-600 mt-3 flex items-start gap-2">
+              <Sparkles class="h-4 w-4 text-gray-400 mt-0.5" />
+              <div>
+                <div class="font-medium text-gray-800">No recommendations yet</div>
+                <div class="text-xs text-gray-500 mt-0.5">Share your grades and interests to personalize results.</div>
+              </div>
             </div>
             <div v-else class="mt-3 grid grid-cols-1 gap-3">
               <div
@@ -405,6 +557,19 @@ onMounted(async () => {
                   </span>
                 </div>
               </div>
+            </div>
+
+            <div v-if="recs.length && recs.length >= recsK && recsK < recsMax" class="mt-4">
+              <button
+                class="btn btn-outline btn-sm gap-2"
+                type="button"
+                title="Show more"
+                aria-label="Show more"
+                @click="showMoreRecs"
+              >
+                <ChevronDown class="h-4 w-4" />
+                <span>Show more</span>
+              </button>
             </div>
 
             <section v-if="stretchRecs.length" class="mt-6">

@@ -104,7 +104,30 @@ const clusterPointsHint = computed(() => {
     </div>
 
     <p v-if="error" class="mt-3 text-sm text-red-600">{{ error }}</p>
-    <div v-else-if="loading" class="mt-4 text-sm text-gray-600">Loading…</div>
+    <div v-else-if="loading" class="mt-6 grid grid-cols-1 lg:grid-cols-3 gap-6 animate-pulse">
+      <section class="lg:col-span-2 space-y-6">
+        <div class="card p-4">
+          <div class="h-5 bg-gray-200 rounded w-40"></div>
+          <div class="mt-4 grid grid-cols-1 sm:grid-cols-2 gap-3">
+            <div v-for="i in 6" :key="i" class="h-12 bg-gray-100 rounded"></div>
+          </div>
+        </div>
+        <div class="card p-4">
+          <div class="h-5 bg-gray-200 rounded w-40"></div>
+          <div class="mt-3 h-20 bg-gray-100 rounded"></div>
+        </div>
+      </section>
+      <aside class="space-y-6">
+        <div class="card p-4">
+          <div class="h-5 bg-gray-200 rounded w-28"></div>
+          <div class="mt-3 h-10 bg-gray-100 rounded"></div>
+        </div>
+        <div class="card p-4">
+          <div class="h-5 bg-gray-200 rounded w-20"></div>
+          <div class="mt-3 h-24 bg-gray-100 rounded"></div>
+        </div>
+      </aside>
+    </div>
 
     <div v-else-if="program" class="mt-6 grid grid-cols-1 lg:grid-cols-3 gap-6">
       <section class="lg:col-span-2 space-y-6">

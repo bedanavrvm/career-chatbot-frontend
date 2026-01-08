@@ -96,7 +96,31 @@ function openRiasecDetails () {
 
     <p v-if="error" class="mt-3 text-sm text-red-600">{{ error }}</p>
 
-    <section class="mt-6 grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+    <div v-if="loading" class="mt-6 space-y-6 animate-pulse">
+      <section class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+        <div v-for="i in 4" :key="i" class="card p-4">
+          <div class="h-4 bg-gray-200 rounded w-3/4"></div>
+          <div class="mt-3 h-8 bg-gray-100 rounded w-2/5"></div>
+          <div class="mt-3 h-3 bg-gray-100 rounded w-2/3"></div>
+        </div>
+      </section>
+      <section class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+        <div class="lg:col-span-2 card p-4">
+          <div class="h-4 bg-gray-200 rounded w-40"></div>
+          <div class="mt-4 space-y-3">
+            <div v-for="i in 5" :key="i" class="h-10 bg-gray-100 rounded"></div>
+          </div>
+        </div>
+        <div class="card p-4">
+          <div class="h-4 bg-gray-200 rounded w-24"></div>
+          <div class="mt-4 space-y-2">
+            <div v-for="i in 4" :key="i" class="h-4 bg-gray-100 rounded"></div>
+          </div>
+        </div>
+      </section>
+    </div>
+
+    <section v-else class="mt-6 grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
           <div
             class="card p-4 clickable-card"
             role="button"
@@ -145,7 +169,7 @@ function openRiasecDetails () {
           </div>
     </section>
 
-    <section class="mt-6 grid grid-cols-1 lg:grid-cols-3 gap-6">
+    <section v-if="!loading" class="mt-6 grid grid-cols-1 lg:grid-cols-3 gap-6">
       <div class="lg:col-span-2 card p-4">
         <h2 class="text-lg font-semibold">RIASEC Profile</h2>
         <p class="text-sm text-gray-600">Top types: <span class="font-medium">{{ (riasec.top || []).join(', ') || '—' }}</span></p>
