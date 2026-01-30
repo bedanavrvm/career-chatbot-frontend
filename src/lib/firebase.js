@@ -12,24 +12,19 @@ const firebaseConfig = {
   appId: import.meta.env.VITE_FIREBASE_APP_ID,
 };
 
-export const app = initializeApp(firebaseConfig);
-export const auth = getAuth(app);
-export const googleProvider = new GoogleAuthProvider();
-
-const _authUser = ref(auth.currentUser)
+const _authUser = ref(null)
 export const authUser = readonly(_authUser)
 
 const _authReadyState = ref(false)
 export const authReadyState = readonly(_authReadyState)
 
-// Promise that resolves on first auth state emission
 let _resolveAuthReady
 export const authReady = new Promise((resolve) => {
   _resolveAuthReady = resolve
 });
 
-onAuthStateChanged(auth, (u) => {
-  _authUser.value = u
+function _markAuthReady (u) {
+  _authUser.value = u || null
   if (!_authReadyState.value) {
     _authReadyState.value = true
   }
@@ -37,4 +32,33 @@ onAuthStateChanged(auth, (u) => {
     _resolveAuthReady()
     _resolveAuthReady = null
   }
-});
+}
+
+const _hasFirebaseConfig = Boolean(
+  firebaseConfig.apiKey &&
+  firebaseConfig.authDomain &&
+  firebaseConfig.projectId &&
+  firebaseConfig.appId
+)
+
+export let firebaseInitError = null
+export let app = null
+export let auth = { currentUser: null }
+export let googleProvider = null
+
+if (_hasFirebaseConfig) {
+  try {
+    app = initializeApp(firebaseConfig)
+    auth = getAuth(app)
+    googleProvider = new GoogleAuthProvider()
+    onAuthStateChanged(auth, (u) => {
+      _markAuthReady(u)
+    })
+  } catch (e) {
+    firebaseInitError = e
+    _markAuthReady(null)
+  }
+} else {
+  firebaseInitError = new Error('Missing Firebase configuration (VITE_FIREBASE_* env vars)')
+  _markAuthReady(null)
+}
