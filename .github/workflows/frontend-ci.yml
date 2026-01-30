@@ -12,6 +12,7 @@ jobs:
   build:
     runs-on: ubuntu-latest
     env:
+      VITE_API_BASE_URL: ${{ secrets.VITE_API_BASE_URL || vars.VITE_API_BASE_URL }}
       VITE_FIREBASE_API_KEY: ${{ secrets.VITE_FIREBASE_API_KEY || vars.VITE_FIREBASE_API_KEY }}
       VITE_FIREBASE_AUTH_DOMAIN: ${{ secrets.VITE_FIREBASE_AUTH_DOMAIN || vars.VITE_FIREBASE_AUTH_DOMAIN }}
       VITE_FIREBASE_PROJECT_ID: ${{ secrets.VITE_FIREBASE_PROJECT_ID || vars.VITE_FIREBASE_PROJECT_ID }}
@@ -31,6 +32,7 @@ jobs:
         run: npm test
       - name: Check required Vite env
         run: |
+          test -n "$VITE_API_BASE_URL"
           test -n "$VITE_FIREBASE_API_KEY"
           test -n "$VITE_FIREBASE_AUTH_DOMAIN"
           test -n "$VITE_FIREBASE_PROJECT_ID"
