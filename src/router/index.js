@@ -96,8 +96,8 @@ router.beforeEach(async (to, from, next) => {
           return
         }
       } catch {
-        next({ path: '/onboarding' })
-        return
+        // If the onboarding status check fails (network/backend outage), don't trap users in a redirect loop.
+        // Allow navigation; pages should handle missing profile data gracefully.
       }
     }
     next()
