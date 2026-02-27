@@ -583,52 +583,65 @@ onBeforeUnmount(() => {
               <div v-else class="mt-3 grid grid-cols-1 gap-3">
                 <div
                   v-for="r in recs"
-                  :key="r.program_id || r.program_code || r.program_name"
-                  :class="['card p-3', r.program_id ? 'clickable-card' : '']"
-                  :role="r.program_id ? 'button' : null"
-                  :tabindex="r.program_id ? 0 : -1"
-                  @click="openProgramDetails(r)"
-                  @keydown.enter="openProgramDetails(r)"
+                  :key="r.institutions?.[0]?.program_id || r.institutions?.[0]?.program_code || r.program_name"
+                  class="card p-3"
                 >
-                  <div class="flex items-start justify-between gap-4">
+                  <div class="flex items-start justify-between gap-4 mb-3">
                     <div class="min-w-0">
                       <div class="flex items-start gap-2 min-w-0">
                         <div class="font-semibold text-gray-900 leading-snug break-words">{{ r.program_name }}</div>
-                        <span
-                          v-if="r.eligibility && r.eligibility.eligible === true"
-                          class="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-green-50 text-green-700 border border-green-200 whitespace-nowrap"
-                        >Eligible</span>
-                        <span
-                          v-else-if="r.eligibility && r.eligibility.eligible === false"
-                          class="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-red-50 text-red-700 border border-red-200 whitespace-nowrap"
-                        >Not eligible</span>
-                        <span
-                          v-else
-                          class="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-gray-50 text-gray-700 border border-gray-200 whitespace-nowrap"
-                        >Unknown</span>
                       </div>
-                      <div class="text-sm text-gray-600">
-                        {{ r.institution_name }}
-                        <span v-if="r.region"> · {{ r.region }}</span>
-                        <span v-if="r.campus"> · {{ r.campus }}</span>
-                      </div>
-                      <div v-if="r.requirements_preview" class="text-xs text-gray-500 mt-1">Reqs: {{ r.requirements_preview }}</div>
-                    </div>
-                    <div class="text-right text-xs text-gray-600 shrink-0">
-                      <div v-if="r.program_code" class="font-mono">{{ r.program_code }}</div>
-                      <div>Score: {{ r.score }}</div>
                     </div>
                   </div>
-                  <div v-if="r.eligibility && r.eligibility.missing && r.eligibility.missing.length" class="mt-1.5 text-xs text-gray-600">
-                    Missing: {{ r.eligibility.missing.join(', ') }}
-                  </div>
-                  <div v-if="r.cost || r.latest_cutoff" class="mt-2 text-xs text-gray-600">
-                    <span v-if="r.cost && r.cost.amount != null">Cost: {{ r.cost.amount }} {{ r.cost.currency }}</span>
-                    <span v-else-if="r.cost && r.cost.raw_cost">Cost: {{ r.cost.raw_cost }}</span>
-                    <span v-if="r.latest_cutoff && r.latest_cutoff.cutoff != null">
-                      <span v-if="r.cost"> · </span>
-                      Cutoff {{ r.latest_cutoff.year }}: {{ r.latest_cutoff.cutoff }}
-                    </span>
+                  
+                  <div class="space-y-3 pl-2 border-l-2 border-primary/20">
+                    <div 
+                      v-for="(inst, instIdx) in r.institutions" 
+                      :key="inst.program_id || inst.institution_code || instIdx"
+                      :class="['group hover:bg-gray-50 rounded p-2 -ml-2 transition-colors', inst.program_id ? 'cursor-pointer' : 'opacity-70']"
+                      :role="inst.program_id ? 'button' : null"
+                      :tabindex="inst.program_id ? 0 : -1"
+                      @click="() => inst.program_id && openProgramDetails({...r, ...inst})"
+                      @keydown.enter="() => inst.program_id && openProgramDetails({...r, ...inst})"
+                    >
+                      <div class="flex items-start justify-between gap-3">
+                        <div class="min-w-0 flex-1">
+                          <div class="flex items-center gap-2 flex-wrap">
+                             <div class="text-sm font-medium text-gray-800">
+                               {{ inst.institution_name }}
+                             </div>
+                             <span
+                                v-if="inst.eligibility && inst.eligibility.eligible === true"
+                                class="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-green-50 text-green-700 border border-green-200 whitespace-nowrap"
+                              >Eligible</span>
+                              <span
+                                v-else-if="inst.eligibility && inst.eligibility.eligible === false"
+                                class="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-red-50 text-red-700 border border-red-200 whitespace-nowrap"
+                              >Not eligible</span>
+                          </div>
+                         
+                          <div class="text-xs text-gray-600 mt-0.5 flex items-center gap-2">
+                             <span v-if="inst.region">{{ inst.region }}</span>
+                             <span v-if="inst.campus"> · {{ inst.campus }}</span>
+                          </div>
+                          
+                          <div v-if="inst.eligibility && inst.eligibility.missing && inst.eligibility.missing.length" class="mt-1 text-xs text-red-600/80">
+                            Missing: {{ inst.eligibility.missing.join(', ') }}
+                          </div>
+                           <div v-if="inst.cost || inst.latest_cutoff" class="mt-1 text-xs text-gray-500 flex flex-wrap gap-x-3 gap-y-1">
+                            <span v-if="inst.cost && inst.cost.amount != null">Cost: {{ inst.cost.amount }} {{ inst.cost.currency }}</span>
+                            <span v-else-if="inst.cost && inst.cost.raw_cost">Cost: {{ inst.cost.raw_cost }}</span>
+                            <span v-if="inst.latest_cutoff && inst.latest_cutoff.cutoff != null">
+                              Cutoff {{ inst.latest_cutoff.year }}: {{ inst.latest_cutoff.cutoff }}
+                            </span>
+                          </div>
+                        </div>
+
+                        <div class="text-right shrink-0 flex flex-col items-end gap-1">
+                          <div v-if="inst.program_code" class="font-mono text-xs bg-primary/10 text-primary px-1.5 py-0.5 rounded border border-primary/20">{{ inst.program_code }}</div>
+                        </div>
+                      </div>
+                    </div>
                   </div>
                 </div>
               </div>
@@ -648,41 +661,58 @@ onBeforeUnmount(() => {
                 <p class="mt-1 text-xs text-gray-600">These match your goal, but you're not eligible yet. Check missing subjects/grades or the cutoff gap.</p>
                 <div class="mt-3 grid grid-cols-1 gap-3">
                   <div
-                    v-for="r in stretchRecs"
-                    :key="`stretch:${r.program_id || r.program_code || r.program_name}`"
-                    :class="['card p-3', r.program_id ? 'clickable-card' : '', 'border-amber-200 bg-amber-50/40']"
-                    :role="r.program_id ? 'button' : null"
-                    :tabindex="r.program_id ? 0 : -1"
-                    @click="openProgramDetails(r)"
-                    @keydown.enter="openProgramDetails(r)"
+                    v-for="(r, rIdx) in stretchRecs"
+                    :key="`stretch:${r.institutions?.[0]?.program_id || r.institutions?.[0]?.program_code || r.program_name || rIdx}`"
+                    class="card p-3 border-amber-200 bg-amber-50/40"
                   >
-                    <div class="flex items-start justify-between gap-4">
-                      <div class="min-w-0">
+                    <div class="flex items-start justify-between gap-4 mb-3">
+                      <div class="min-w-0 flex-1">
                         <div class="flex items-start gap-2 min-w-0">
-                          <div class="font-semibold text-gray-900 leading-snug break-words">{{ r.program_name }}</div>
-                          <span class="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-amber-50 text-amber-800 border border-amber-200 whitespace-nowrap">Stretch</span>
+                          <div class="font-medium text-gray-900 leading-snug break-words">{{ r.program_name }}</div>
+                          <span class="inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-medium bg-amber-100 text-amber-800 border border-amber-200 whitespace-nowrap shrink-0 mt-0.5">
+                            Stretch
+                          </span>
                         </div>
-                        <div class="text-sm text-gray-600">
-                          {{ r.institution_name }}
-                          <span v-if="r.region"> · {{ r.region }}</span>
-                          <span v-if="r.campus"> · {{ r.campus }}</span>
-                        </div>
-                        <div v-if="r.requirements_preview" class="text-xs text-gray-500 mt-1">Reqs: {{ r.requirements_preview }}</div>
-                      </div>
-                      <div class="text-right text-xs text-gray-600 shrink-0">
-                        <div v-if="r.program_code" class="font-mono">{{ r.program_code }}</div>
-                        <div>Score: {{ r.score }}</div>
                       </div>
                     </div>
-                    <div v-if="r.eligibility && r.eligibility.missing && r.eligibility.missing.length" class="mt-1.5 text-xs text-gray-700">
-                      Missing: {{ r.eligibility.missing.join(', ') }}
-                    </div>
-                    <div v-if="r.latest_cutoff || (r.stretch_reason && r.stretch_reason.cutoff_gap != null)" class="mt-2 text-xs text-gray-700">
-                      <span v-if="r.latest_cutoff && r.latest_cutoff.cutoff != null">Cutoff {{ r.latest_cutoff.year }}: {{ r.latest_cutoff.cutoff }}</span>
-                      <span v-if="r.stretch_reason && r.stretch_reason.cutoff_gap != null">
-                        <span v-if="r.latest_cutoff && r.latest_cutoff.cutoff != null"> · </span>
-                        Gap: {{ r.stretch_reason.cutoff_gap }}
-                      </span>
+
+                    <div class="space-y-3 pl-2 border-l-2 border-amber-300/40">
+                      <div 
+                        v-for="(inst, instIdx) in r.institutions" 
+                        :key="`inst-stretch-${inst.program_id || inst.institution_code || instIdx}`"
+                        :class="['group hover:bg-amber-50 rounded p-2 -ml-2 transition-colors', inst.program_id ? 'cursor-pointer' : 'opacity-70']"
+                        :role="inst.program_id ? 'button' : null"
+                        :tabindex="inst.program_id ? 0 : -1"
+                        @click="() => inst.program_id && openProgramDetails({...r, ...inst})"
+                        @keydown.enter="() => inst.program_id && openProgramDetails({...r, ...inst})"
+                      >
+                        <div class="flex items-start justify-between gap-3">
+                          <div class="min-w-0 flex-1">
+                            <div class="flex items-center gap-2 flex-wrap">
+                               <div class="text-sm font-medium text-gray-800">
+                                 {{ inst.institution_name }}
+                               </div>
+                            </div>
+
+                            <div v-if="inst.stretch_reason && inst.stretch_reason.cutoff_gap" class="text-xs text-amber-700 font-medium flex items-center gap-1.5 mt-0.5">
+                              <TrendingUp class="w-3 h-3" />
+                              Short of cutoff by {{ inst.stretch_reason.cutoff_gap }} points
+                            </div>
+                            <div v-if="inst.eligibility && inst.eligibility.missing && inst.eligibility.missing.length" class="mt-1.5 text-xs text-gray-700">
+                              Missing: {{ inst.eligibility.missing.join(', ') }}
+                            </div>
+
+                            <div class="text-xs text-gray-500 mt-1 flex items-center gap-2">
+                               <span v-if="inst.region">{{ inst.region }}</span>
+                               <span v-if="inst.campus"> · {{ inst.campus }}</span>
+                            </div>
+                          </div>
+
+                          <div class="text-right shrink-0 flex flex-col items-end gap-1.5">
+                            <div v-if="inst.program_code" class="font-mono text-xs bg-amber-100/50 text-amber-800 px-1.5 py-0.5 rounded border border-amber-200">{{ inst.program_code }}</div>
+                          </div>
+                        </div>
+                      </div>
                     </div>
                   </div>
                 </div>
