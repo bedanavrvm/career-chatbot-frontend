@@ -612,28 +612,16 @@ onBeforeUnmount(() => {
                              </div>
                              <span
                                 v-if="inst.eligibility && inst.eligibility.eligible === true"
-                                class="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-green-50 text-green-700 border border-green-200 whitespace-nowrap"
+                                class="inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-medium bg-green-50 text-green-700 border border-green-200 whitespace-nowrap"
                               >Eligible</span>
                               <span
                                 v-else-if="inst.eligibility && inst.eligibility.eligible === false"
-                                class="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-red-50 text-red-700 border border-red-200 whitespace-nowrap"
+                                class="inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-medium bg-red-50 text-red-700 border border-red-200 whitespace-nowrap"
                               >Not eligible</span>
-                          </div>
-                         
-                          <div class="text-xs text-gray-600 mt-0.5 flex items-center gap-2">
-                             <span v-if="inst.region">{{ inst.region }}</span>
-                             <span v-if="inst.campus"> · {{ inst.campus }}</span>
-                          </div>
-                          
-                          <div v-if="inst.eligibility && inst.eligibility.missing && inst.eligibility.missing.length" class="mt-1 text-xs text-red-600/80">
-                            Missing: {{ inst.eligibility.missing.join(', ') }}
-                          </div>
-                           <div v-if="inst.cost || inst.latest_cutoff" class="mt-1 text-xs text-gray-500 flex flex-wrap gap-x-3 gap-y-1">
-                            <span v-if="inst.cost && inst.cost.amount != null">Cost: {{ inst.cost.amount }} {{ inst.cost.currency }}</span>
-                            <span v-else-if="inst.cost && inst.cost.raw_cost">Cost: {{ inst.cost.raw_cost }}</span>
-                            <span v-if="inst.latest_cutoff && inst.latest_cutoff.cutoff != null">
-                              Cutoff {{ inst.latest_cutoff.year }}: {{ inst.latest_cutoff.cutoff }}
-                            </span>
+                              <span
+                                v-else
+                                class="inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-medium bg-gray-50 text-gray-700 border border-gray-200 whitespace-nowrap"
+                              >Unknown</span>
                           </div>
                         </div>
 
@@ -692,19 +680,18 @@ onBeforeUnmount(() => {
                                <div class="text-sm font-medium text-gray-800">
                                  {{ inst.institution_name }}
                                </div>
-                            </div>
-
-                            <div v-if="inst.stretch_reason && inst.stretch_reason.cutoff_gap" class="text-xs text-amber-700 font-medium flex items-center gap-1.5 mt-0.5">
-                              <TrendingUp class="w-3 h-3" />
-                              Short of cutoff by {{ inst.stretch_reason.cutoff_gap }} points
-                            </div>
-                            <div v-if="inst.eligibility && inst.eligibility.missing && inst.eligibility.missing.length" class="mt-1.5 text-xs text-gray-700">
-                              Missing: {{ inst.eligibility.missing.join(', ') }}
-                            </div>
-
-                            <div class="text-xs text-gray-500 mt-1 flex items-center gap-2">
-                               <span v-if="inst.region">{{ inst.region }}</span>
-                               <span v-if="inst.campus"> · {{ inst.campus }}</span>
+                               <span
+                                v-if="inst.eligibility && inst.eligibility.eligible === true"
+                                class="inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-medium bg-green-50 text-green-700 border border-green-200 whitespace-nowrap"
+                              >Eligible</span>
+                              <span
+                                v-else-if="inst.eligibility && inst.eligibility.eligible === false"
+                                class="inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-medium bg-red-50 text-red-700 border border-red-200 whitespace-nowrap"
+                              >Not eligible</span>
+                              <span
+                                v-else
+                                class="inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-medium bg-gray-50 text-gray-700 border border-gray-200 whitespace-nowrap"
+                              >Unknown</span>
                             </div>
                           </div>
 
