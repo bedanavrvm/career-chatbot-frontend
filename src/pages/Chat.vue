@@ -329,30 +329,59 @@ async function sendMessage () {
   if (!text || sending.value) return
   sending.value = true
   error.value = ''
-  try {
-    // optimistic append user message
-    conversation.value.messages.push({ role: 'user', content: text, created_at: new Date().toISOString() })
-    await nextTick(); scrollToBottom()
-    const resp = await convPostMessage(idToken.value, sessionId.value, { text, idempotencyKey: `${Date.now()}`, nlpProvider: nlpProvider.value })
-    conversation.value = resp.session
-    input.value = ''
-    await nextTick(); scrollToBottom()
+  
+  // optimistic append user message
+  conversation.value.messages.push({ role: 'user', content: text, created_at: new Date().toISOString() })
+  
+  // placeholder for the assistant stream
+  const assistantMsg = { role: 'assistant', content: '', created_at: new Date().toISOString() }
+  conversation.value.messages.push(assistantMsg)
+  
+  await nextTick(); scrollToBottom()
+  input.value = ''
 
-    const tr = resp?.turn_recommendations
-    if (tr && typeof tr === 'object') {
-      const k = Number(tr.k || 0)
-      if (k > 0) recsK.value = Math.min(recsMax, Math.max(1, k))
-      recs.value = Array.isArray(tr.recommendations) ? tr.recommendations : []
-      stretchRecs.value = Array.isArray(tr.stretch_recommendations) ? tr.stretch_recommendations : []
-    } else {
-      await loadRecommendations()
-    }
-    inputEl.value?.focus?.()
-  } catch (e) {
-    error.value = e?.message || 'Failed to send message'
-  } finally {
-    sending.value = false
-  }
+  return new Promise((resolve) => {
+    let currentText = ''
+    convStreamMessage(
+      idToken.value, 
+      sessionId.value, 
+      { text, idempotencyKey: `${Date.now()}`, nlpProvider: nlpProvider.value },
+      {
+        onDelta: (chunk) => {
+          currentText += chunk
+          assistantMsg.content = currentText
+          scrollToBottom()
+        },
+        onDone: async (resp) => {
+          conversation.value = resp.session
+          const tr = resp?.turn_recommendations
+          if (tr && typeof tr === 'object') {
+            const k = Number(tr.k || 0)
+            if (k > 0) recsK.value = Math.min(recsMax, Math.max(1, k))
+            recs.value = Array.isArray(tr.recommendations) ? tr.recommendations : []
+            stretchRecs.value = Array.isArray(tr.stretch_recommendations) ? tr.stretch_recommendations : []
+          } else {
+            await loadRecommendations()
+          }
+          sending.value = false
+          inputEl.value?.focus?.()
+          await nextTick(); scrollToBottom()
+          resolve()
+        },
+        onError: (errMsg) => {
+          error.value = errMsg || 'Failed to send message'
+          // Pop the failed assistant message placeholder if it's empty
+          if (!currentText) conversation.value.messages.pop()
+          sending.value = false
+          resolve()
+        },
+        onAbort: () => {
+          sending.value = false
+          resolve()
+        }
+      }
+    )
+  })
 }
 
 onMounted(async () => {
