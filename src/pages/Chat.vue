@@ -1,7 +1,7 @@
 <script setup>
 import { ref, computed, onMounted, onBeforeUnmount, nextTick, watch } from 'vue'
 import { useRouter } from 'vue-router'
-import { convGetSession, convPostMessage, convDeleteSession, convGetRecommendations, catalogStatus } from '../lib/api'
+import { convGetSession, convPostMessage, convDeleteSession, convGetRecommendations, catalogStatus, convStreamMessage, catalogGetProgramDetail } from '../lib/api'
 import { Plus, Trash2, RefreshCw, Send, ChevronDown, Sparkles } from 'lucide-vue-next'
 import { useAuth } from '../lib/useAuth'
 import { useApiCall } from '../utils/useApiCall'
@@ -37,10 +37,26 @@ const router = useRouter()
 const { user, getIdToken, waitForAuthReady } = useAuth()
 const { run } = useApiCall({ toastErrors: true })
 
-function openProgramDetails (r) {
+// ─── Program Details Tab ──────────────────────────────────────────────────────
+const rightTab = ref('recommendations')   // 'recommendations' | 'details'
+const selectedProgram = ref(null)
+const programLoading = ref(false)
+const programError = ref('')
+
+async function openProgramDetails (r) {
   const id = r?.program_id
   if (!id) return
-  router.push({ name: 'program_details', params: { id: String(id) } })
+  rightTab.value = 'details'
+  programLoading.value = true
+  programError.value = ''
+  selectedProgram.value = null
+  try {
+    selectedProgram.value = await catalogGetProgramDetail(id, idToken.value)
+  } catch (e) {
+    programError.value = e?.message || 'Failed to load program details'
+  } finally {
+    programLoading.value = false
+  }
 }
 const idToken = ref('')
 const storageKey = computed(() => {
@@ -177,9 +193,31 @@ function splitByCitations (text) {
   return parts
 }
 
+function splitByProgramCodes (text) {
+  // Parses [P1] citation tokens AND [CODE: 1263131] program code tokens.
+  const s = String(text || '')
+  const re = /\[P(\d+)\]|\[CODE:\s*(\d+)\]/g
+  const parts = []
+  let last = 0
+  let m
+  while ((m = re.exec(s)) !== null) {
+    const start = m.index
+    const end = m.index + m[0].length
+    if (start > last) parts.push({ type: 'text', value: s.slice(last, start) })
+    if (m[1] !== undefined) {
+      parts.push({ type: 'cite', value: m[1] })
+    } else {
+      parts.push({ type: 'program_code', value: m[2] })
+    }
+    last = end
+  }
+  if (last < s.length) parts.push({ type: 'text', value: s.slice(last) })
+  return parts
+}
+
 function segmentsForMessage (msg) {
   if (!msg || msg.role !== 'assistant') return [{ type: 'text', value: msg?.content || '' }]
-  return splitByCitations(msg.content)
+  return splitByProgramCodes(msg.content)
 }
 
 const lastAssistantMessage = computed(() => {
@@ -464,128 +502,83 @@ onBeforeUnmount(() => {
         </section>
 
         <aside class="lg:col-span-2 min-h-0">
-          <div class="border rounded-xl p-4 bg-white/60 h-full min-h-0 overflow-y-auto">
-            <div class="flex items-center justify-between">
-              <h2 class="text-lg font-semibold text-gray-900">Recommendations</h2>
-              <div class="flex items-center gap-2">
-                <button
-                  v-if="recsK > 10"
-                  class="btn btn-outline btn-sm"
-                  type="button"
-                  title="Show fewer"
-                  aria-label="Show fewer"
-                  @click="resetRecsCount"
-                >Less</button>
-                <button
-                  class="btn btn-outline btn-sm gap-2 transition-all hover:bg-gray-50 hover:shadow-sm active:scale-[0.99]"
-                  type="button"
-                  title="Refresh"
-                  aria-label="Refresh"
-                  @click="loadRecommendations"
-                >
-                  <RefreshCw class="h-4 w-4" />
-                  <span class="hidden sm:inline">Refresh</span>
-                  <span class="sr-only sm:hidden">Refresh</span>
-                </button>
-              </div>
-            </div>
+          <div class="border rounded-xl bg-white/60 h-full min-h-0 flex flex-col overflow-hidden">
 
-            <div class="mt-2 text-xs text-gray-500">Showing up to {{ recsK }} results</div>
-            <p v-if="recsError" class="text-sm text-red-600 mt-2">{{ recsError }}</p>
-            <div v-if="recsLoading && !recs.length" class="mt-3 grid grid-cols-1 gap-3">
-              <div v-for="i in 6" :key="i" class="card p-3 animate-pulse">
-                <div class="h-4 bg-gray-200 rounded w-3/4"></div>
-                <div class="mt-2 h-3 bg-gray-100 rounded w-2/3"></div>
-                <div class="mt-2 h-3 bg-gray-100 rounded w-1/2"></div>
-              </div>
-            </div>
-            <div v-else-if="!recs.length" class="text-sm text-gray-600 mt-3 flex items-start gap-2">
-              <Sparkles class="h-4 w-4 text-gray-400 mt-0.5" />
-              <div>
-                <div class="font-medium text-gray-800">No recommendations yet</div>
-                <div class="text-xs text-gray-500 mt-0.5">Share your grades and interests to personalize results.</div>
-              </div>
-            </div>
-            <div v-else class="mt-3 grid grid-cols-1 gap-3">
-              <div
-                v-for="r in recs"
-                :key="r.program_id || r.program_code || r.program_name"
-                :class="['card p-3', r.program_id ? 'clickable-card' : '']"
-                :role="r.program_id ? 'button' : null"
-                :tabindex="r.program_id ? 0 : -1"
-                @click="openProgramDetails(r)"
-                @keydown.enter="openProgramDetails(r)"
-              >
-                <div class="flex items-start justify-between gap-4">
-                  <div class="min-w-0">
-                    <div class="flex items-start gap-2 min-w-0">
-                      <div class="font-semibold text-gray-900 leading-snug break-words">{{ r.program_name }}</div>
-                      <span
-                        v-if="r.eligibility && r.eligibility.eligible === true"
-                        class="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-green-50 text-green-700 border border-green-200 whitespace-nowrap"
-                      >Eligible</span>
-                      <span
-                        v-else-if="r.eligibility && r.eligibility.eligible === false"
-                        class="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-red-50 text-red-700 border border-red-200 whitespace-nowrap"
-                      >Not eligible</span>
-                      <span
-                        v-else
-                        class="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-gray-50 text-gray-700 border border-gray-200 whitespace-nowrap"
-                      >Unknown</span>
-                    </div>
-                    <div class="text-sm text-gray-600">
-                      {{ r.institution_name }}
-                      <span v-if="r.region"> · {{ r.region }}</span>
-                      <span v-if="r.campus"> · {{ r.campus }}</span>
-                    </div>
-                    <div v-if="r.requirements_preview" class="text-xs text-gray-500 mt-1">Reqs: {{ r.requirements_preview }}</div>
-                  </div>
-                  <div class="text-right text-xs text-gray-600">
-                    <div v-if="r.program_code" class="font-mono">{{ r.program_code }}</div>
-                    <div>Score: {{ r.score }}</div>
-                  </div>
-                </div>
-                <div v-if="r.eligibility && r.eligibility.missing && r.eligibility.missing.length" class="mt-1.5 text-xs text-gray-600">
-                  Missing: {{ r.eligibility.missing.join(', ') }}
-                </div>
-                <div v-if="r.cost || r.latest_cutoff" class="mt-2 text-xs text-gray-600">
-                  <span v-if="r.cost && r.cost.amount != null">Cost: {{ r.cost.amount }} {{ r.cost.currency }}</span>
-                  <span v-else-if="r.cost && r.cost.raw_cost">Cost: {{ r.cost.raw_cost }}</span>
-                  <span v-if="r.latest_cutoff && r.latest_cutoff.cutoff != null">
-                    <span v-if="r.cost || (r.cost && r.cost.raw_cost)"> · </span>
-                    Cutoff {{ r.latest_cutoff.year }}: {{ r.latest_cutoff.cutoff }}
-                  </span>
-                </div>
-              </div>
-            </div>
-
-            <div v-if="recs.length && recs.length >= recsK && recsK < recsMax" class="mt-4">
+            <!-- Tab bar -->
+            <div class="flex border-b shrink-0">
               <button
-                class="btn btn-outline btn-sm gap-2"
                 type="button"
-                title="Show more"
-                aria-label="Show more"
-                @click="showMoreRecs"
+                :class="[
+                  'flex-1 py-2.5 text-sm font-medium transition-colors',
+                  rightTab === 'recommendations'
+                    ? 'border-b-2 border-brand text-brand'
+                    : 'text-gray-500 hover:text-gray-800'
+                ]"
+                @click="rightTab = 'recommendations'"
+              >Recommendations</button>
+              <button
+                type="button"
+                :class="[
+                  'flex-1 py-2.5 text-sm font-medium transition-colors',
+                  rightTab === 'details'
+                    ? 'border-b-2 border-brand text-brand'
+                    : 'text-gray-500 hover:text-gray-800'
+                ]"
+                @click="rightTab = 'details'"
               >
-                <ChevronDown class="h-4 w-4" />
-                <span>Show more</span>
+                Details
+                <span v-if="selectedProgram" class="ml-1 text-xs text-gray-400 font-normal hidden sm:inline">· {{ (selectedProgram.program_name || '').slice(0, 16) }}…</span>
               </button>
             </div>
 
-            <section v-if="stretchRecs.length" class="mt-6">
-              <div class="flex items-center justify-between">
-                <h3 class="text-base font-semibold text-gray-900">Aspirational / Stretch</h3>
-                <div class="text-xs text-gray-600">{{ stretchRecs.length }} suggested</div>
+            <!-- Recommendations tab -->
+            <div v-show="rightTab === 'recommendations'" class="flex-1 overflow-y-auto p-4">
+              <div class="flex items-center justify-between mb-3">
+                <h2 class="text-lg font-semibold text-gray-900">Recommendations</h2>
+                <div class="flex items-center gap-2">
+                  <button
+                    v-if="recsK > 10"
+                    class="btn btn-outline btn-sm"
+                    type="button"
+                    title="Show fewer"
+                    aria-label="Show fewer"
+                    @click="resetRecsCount"
+                  >Less</button>
+                  <button
+                    class="btn btn-outline btn-sm gap-2 transition-all hover:bg-gray-50 hover:shadow-sm active:scale-[0.99]"
+                    type="button"
+                    title="Refresh"
+                    aria-label="Refresh"
+                    @click="loadRecommendations"
+                  >
+                    <RefreshCw class="h-4 w-4" />
+                    <span class="hidden sm:inline">Refresh</span>
+                    <span class="sr-only sm:hidden">Refresh</span>
+                  </button>
+                </div>
               </div>
-              <p class="mt-1 text-xs text-gray-600">
-                These match your goal, but you’re not eligible yet. Check missing subjects/grades or the cutoff gap.
-              </p>
 
-              <div class="mt-3 grid grid-cols-1 gap-3">
+              <div class="mt-2 text-xs text-gray-500">Showing up to {{ recsK }} results</div>
+              <p v-if="recsError" class="text-sm text-red-600 mt-2">{{ recsError }}</p>
+              <div v-if="recsLoading && !recs.length" class="mt-3 grid grid-cols-1 gap-3">
+                <div v-for="i in 6" :key="i" class="card p-3 animate-pulse">
+                  <div class="h-4 bg-gray-200 rounded w-3/4"></div>
+                  <div class="mt-2 h-3 bg-gray-100 rounded w-2/3"></div>
+                  <div class="mt-2 h-3 bg-gray-100 rounded w-1/2"></div>
+                </div>
+              </div>
+              <div v-else-if="!recs.length" class="text-sm text-gray-600 mt-3 flex items-start gap-2">
+                <Sparkles class="h-4 w-4 text-gray-400 mt-0.5" />
+                <div>
+                  <div class="font-medium text-gray-800">No recommendations yet</div>
+                  <div class="text-xs text-gray-500 mt-0.5">Share your grades and interests to personalize results.</div>
+                </div>
+              </div>
+              <div v-else class="mt-3 grid grid-cols-1 gap-3">
                 <div
-                  v-for="r in stretchRecs"
-                  :key="`stretch:${r.program_id || r.program_code || r.program_name}`"
-                  :class="['card p-3', r.program_id ? 'clickable-card' : '', 'border-amber-200 bg-amber-50/40']"
+                  v-for="r in recs"
+                  :key="r.program_id || r.program_code || r.program_name"
+                  :class="['card p-3', r.program_id ? 'clickable-card' : '']"
                   :role="r.program_id ? 'button' : null"
                   :tabindex="r.program_id ? 0 : -1"
                   @click="openProgramDetails(r)"
@@ -595,7 +588,18 @@ onBeforeUnmount(() => {
                     <div class="min-w-0">
                       <div class="flex items-start gap-2 min-w-0">
                         <div class="font-semibold text-gray-900 leading-snug break-words">{{ r.program_name }}</div>
-                        <span class="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-amber-50 text-amber-800 border border-amber-200 whitespace-nowrap">Stretch</span>
+                        <span
+                          v-if="r.eligibility && r.eligibility.eligible === true"
+                          class="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-green-50 text-green-700 border border-green-200 whitespace-nowrap"
+                        >Eligible</span>
+                        <span
+                          v-else-if="r.eligibility && r.eligibility.eligible === false"
+                          class="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-red-50 text-red-700 border border-red-200 whitespace-nowrap"
+                        >Not eligible</span>
+                        <span
+                          v-else
+                          class="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-gray-50 text-gray-700 border border-gray-200 whitespace-nowrap"
+                        >Unknown</span>
                       </div>
                       <div class="text-sm text-gray-600">
                         {{ r.institution_name }}
@@ -604,74 +608,236 @@ onBeforeUnmount(() => {
                       </div>
                       <div v-if="r.requirements_preview" class="text-xs text-gray-500 mt-1">Reqs: {{ r.requirements_preview }}</div>
                     </div>
-                    <div class="text-right text-xs text-gray-600">
+                    <div class="text-right text-xs text-gray-600 shrink-0">
                       <div v-if="r.program_code" class="font-mono">{{ r.program_code }}</div>
                       <div>Score: {{ r.score }}</div>
                     </div>
                   </div>
-
-                  <div v-if="r.eligibility && r.eligibility.missing && r.eligibility.missing.length" class="mt-1.5 text-xs text-gray-700">
+                  <div v-if="r.eligibility && r.eligibility.missing && r.eligibility.missing.length" class="mt-1.5 text-xs text-gray-600">
                     Missing: {{ r.eligibility.missing.join(', ') }}
                   </div>
-
-                  <div v-if="r.latest_cutoff || (r.stretch_reason && r.stretch_reason.cutoff_gap != null)" class="mt-2 text-xs text-gray-700">
-                    <span v-if="r.latest_cutoff && r.latest_cutoff.cutoff != null">Cutoff {{ r.latest_cutoff.year }}: {{ r.latest_cutoff.cutoff }}</span>
-                    <span v-if="r.stretch_reason && r.stretch_reason.cutoff_gap != null">
-                      <span v-if="r.latest_cutoff && r.latest_cutoff.cutoff != null"> · </span>
-                      Gap: {{ r.stretch_reason.cutoff_gap }}
+                  <div v-if="r.cost || r.latest_cutoff" class="mt-2 text-xs text-gray-600">
+                    <span v-if="r.cost && r.cost.amount != null">Cost: {{ r.cost.amount }} {{ r.cost.currency }}</span>
+                    <span v-else-if="r.cost && r.cost.raw_cost">Cost: {{ r.cost.raw_cost }}</span>
+                    <span v-if="r.latest_cutoff && r.latest_cutoff.cutoff != null">
+                      <span v-if="r.cost"> · </span>
+                      Cutoff {{ r.latest_cutoff.year }}: {{ r.latest_cutoff.cutoff }}
                     </span>
                   </div>
                 </div>
               </div>
-            </section>
 
-            <section v-if="citedSources.length" class="mt-6">
-              <div class="flex items-center justify-between">
-                <h2 class="text-lg font-semibold text-gray-900">Sources</h2>
-                <div class="text-xs text-gray-600">Cited: <span class="font-mono">{{ citedIds.join(', ') }}</span></div>
+              <div v-if="recs.length && recs.length >= recsK && recsK < recsMax" class="mt-4">
+                <button class="btn btn-outline btn-sm gap-2" type="button" @click="showMoreRecs">
+                  <ChevronDown class="h-4 w-4" />
+                  <span>Show more</span>
+                </button>
               </div>
-              <div class="mt-3 grid grid-cols-1 gap-3">
-                <div
-                  v-for="s in citedSources"
-                  :key="s.citation"
-                  :id="`source-${s.citation}`"
-                  :class="['card p-4', activeCitation === s.citation ? 'ring-2 ring-brand/50' : '']"
-                >
-                  <div class="flex items-start justify-between gap-4">
-                    <div>
-                      <div class="font-semibold text-gray-900">
-                        <span class="font-mono text-xs text-gray-600 mr-2">[{{ s.citation }}]</span>
-                        {{ s.program_name || 'Program' }}
+
+              <section v-if="stretchRecs.length" class="mt-6">
+                <div class="flex items-center justify-between">
+                  <h3 class="text-base font-semibold text-gray-900">Aspirational / Stretch</h3>
+                  <div class="text-xs text-gray-600">{{ stretchRecs.length }} suggested</div>
+                </div>
+                <p class="mt-1 text-xs text-gray-600">These match your goal, but you're not eligible yet. Check missing subjects/grades or the cutoff gap.</p>
+                <div class="mt-3 grid grid-cols-1 gap-3">
+                  <div
+                    v-for="r in stretchRecs"
+                    :key="`stretch:${r.program_id || r.program_code || r.program_name}`"
+                    :class="['card p-3', r.program_id ? 'clickable-card' : '', 'border-amber-200 bg-amber-50/40']"
+                    :role="r.program_id ? 'button' : null"
+                    :tabindex="r.program_id ? 0 : -1"
+                    @click="openProgramDetails(r)"
+                    @keydown.enter="openProgramDetails(r)"
+                  >
+                    <div class="flex items-start justify-between gap-4">
+                      <div class="min-w-0">
+                        <div class="flex items-start gap-2 min-w-0">
+                          <div class="font-semibold text-gray-900 leading-snug break-words">{{ r.program_name }}</div>
+                          <span class="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-amber-50 text-amber-800 border border-amber-200 whitespace-nowrap">Stretch</span>
+                        </div>
+                        <div class="text-sm text-gray-600">
+                          {{ r.institution_name }}
+                          <span v-if="r.region"> · {{ r.region }}</span>
+                          <span v-if="r.campus"> · {{ r.campus }}</span>
+                        </div>
+                        <div v-if="r.requirements_preview" class="text-xs text-gray-500 mt-1">Reqs: {{ r.requirements_preview }}</div>
                       </div>
-                      <div class="text-sm text-gray-600">
-                        {{ s.institution_name || '' }}
-                        <span v-if="s.level"> · {{ s.level }}</span>
-                        <span v-if="s.region"> · {{ s.region }}</span>
-                        <span v-if="s.campus"> · {{ s.campus }}</span>
+                      <div class="text-right text-xs text-gray-600 shrink-0">
+                        <div v-if="r.program_code" class="font-mono">{{ r.program_code }}</div>
+                        <div>Score: {{ r.score }}</div>
                       </div>
-                      <div v-if="s.requirements_preview" class="text-xs text-gray-500 mt-1">Reqs: {{ s.requirements_preview }}</div>
                     </div>
-                    <div class="text-right text-xs text-gray-600">
-                      <div v-if="s.program_code" class="font-mono">{{ s.program_code }}</div>
-                      <div v-if="s.field_name">{{ s.field_name }}</div>
+                    <div v-if="r.eligibility && r.eligibility.missing && r.eligibility.missing.length" class="mt-1.5 text-xs text-gray-700">
+                      Missing: {{ r.eligibility.missing.join(', ') }}
                     </div>
-                  </div>
-                  <div v-if="s.latest_cutoff || s.cost" class="mt-2 text-xs text-gray-600">
-                    <span v-if="s.latest_cutoff && s.latest_cutoff.cutoff != null">Cutoff {{ s.latest_cutoff.year }}: {{ s.latest_cutoff.cutoff }}</span>
-                    <span v-if="s.cost && s.cost.amount != null">
-                      <span v-if="s.latest_cutoff && s.latest_cutoff.cutoff != null"> · </span>
-                      Cost: {{ s.cost.amount }} {{ s.cost.currency }}
-                    </span>
-                    <span v-else-if="s.cost && s.cost.raw_cost">
-                      <span v-if="s.latest_cutoff && s.latest_cutoff.cutoff != null"> · </span>
-                      Cost: {{ s.cost.raw_cost }}
-                    </span>
+                    <div v-if="r.latest_cutoff || (r.stretch_reason && r.stretch_reason.cutoff_gap != null)" class="mt-2 text-xs text-gray-700">
+                      <span v-if="r.latest_cutoff && r.latest_cutoff.cutoff != null">Cutoff {{ r.latest_cutoff.year }}: {{ r.latest_cutoff.cutoff }}</span>
+                      <span v-if="r.stretch_reason && r.stretch_reason.cutoff_gap != null">
+                        <span v-if="r.latest_cutoff && r.latest_cutoff.cutoff != null"> · </span>
+                        Gap: {{ r.stretch_reason.cutoff_gap }}
+                      </span>
+                    </div>
                   </div>
                 </div>
+              </section>
+
+              <section v-if="citedSources.length" class="mt-6">
+                <div class="flex items-center justify-between">
+                  <h2 class="text-lg font-semibold text-gray-900">Sources</h2>
+                  <div class="text-xs text-gray-600">Cited: <span class="font-mono">{{ citedIds.join(', ') }}</span></div>
+                </div>
+                <div class="mt-3 grid grid-cols-1 gap-3">
+                  <div
+                    v-for="s in citedSources"
+                    :key="s.citation"
+                    :id="`source-${s.citation}`"
+                    :class="['card p-4', activeCitation === s.citation ? 'ring-2 ring-brand/50' : '']"
+                  >
+                    <div class="flex items-start justify-between gap-4">
+                      <div>
+                        <div class="font-semibold text-gray-900">
+                          <span class="font-mono text-xs text-gray-600 mr-2">[{{ s.citation }}]</span>
+                          {{ s.program_name || 'Program' }}
+                        </div>
+                        <div class="text-sm text-gray-600">
+                          {{ s.institution_name || '' }}
+                          <span v-if="s.level"> · {{ s.level }}</span>
+                          <span v-if="s.region"> · {{ s.region }}</span>
+                          <span v-if="s.campus"> · {{ s.campus }}</span>
+                        </div>
+                        <div v-if="s.requirements_preview" class="text-xs text-gray-500 mt-1">Reqs: {{ s.requirements_preview }}</div>
+                      </div>
+                      <div class="text-right text-xs text-gray-600 shrink-0">
+                        <div v-if="s.program_code" class="font-mono">{{ s.program_code }}</div>
+                        <div v-if="s.field_name">{{ s.field_name }}</div>
+                      </div>
+                    </div>
+                    <div v-if="s.latest_cutoff || s.cost" class="mt-2 text-xs text-gray-600">
+                      <span v-if="s.latest_cutoff && s.latest_cutoff.cutoff != null">Cutoff {{ s.latest_cutoff.year }}: {{ s.latest_cutoff.cutoff }}</span>
+                      <span v-if="s.cost && s.cost.amount != null">
+                        <span v-if="s.latest_cutoff && s.latest_cutoff.cutoff != null"> · </span>
+                        Cost: {{ s.cost.amount }} {{ s.cost.currency }}
+                      </span>
+                      <span v-else-if="s.cost && s.cost.raw_cost">
+                        <span v-if="s.latest_cutoff && s.latest_cutoff.cutoff != null"> · </span>
+                        Cost: {{ s.cost.raw_cost }}
+                      </span>
+                    </div>
+                  </div>
+                </div>
+              </section>
+            </div><!-- /Recommendations tab -->
+
+            <!-- Details tab -->
+            <div v-show="rightTab === 'details'" class="flex-1 overflow-y-auto p-4">
+              <!-- loading -->
+              <div v-if="programLoading" class="flex flex-col gap-3 mt-2">
+                <div v-for="i in 5" :key="i" class="h-4 bg-gray-200 rounded animate-pulse" :style="{ width: [75, 55, 90, 60, 40][i-1] + '%' }"></div>
               </div>
-            </section>
+              <!-- error -->
+              <p v-else-if="programError" class="text-sm text-red-600 mt-2">{{ programError }}</p>
+              <!-- empty state -->
+              <div v-else-if="!selectedProgram" class="flex flex-col items-center justify-center h-40 gap-3 text-center">
+                <svg class="w-10 h-10 text-gray-300" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/></svg>
+                <p class="text-sm text-gray-500">Click a program code in the chat<br>or a recommendation card<br>to see full details here.</p>
+              </div>
+              <!-- program detail -->
+              <div v-else class="space-y-4 text-sm">
+                <!-- header -->
+                <div>
+                  <div class="flex items-start justify-between gap-2">
+                    <h3 class="font-bold text-gray-900 leading-snug text-base">{{ selectedProgram.program_name }}</h3>
+                    <span v-if="selectedProgram.program_code" class="font-mono text-xs text-gray-500 shrink-0 mt-0.5">{{ selectedProgram.program_code }}</span>
+                  </div>
+                  <div class="text-gray-600 mt-0.5">
+                    {{ selectedProgram.institution?.name }}
+                    <span v-if="selectedProgram.institution?.county"> · {{ selectedProgram.institution.county }}</span>
+                  </div>
+                  <div class="flex flex-wrap gap-2 mt-2">
+                    <span v-if="selectedProgram.level" class="px-2 py-0.5 rounded-full text-xs bg-blue-50 text-blue-700 border border-blue-200">{{ selectedProgram.level }}</span>
+                    <span v-if="selectedProgram.field_name" class="px-2 py-0.5 rounded-full text-xs bg-purple-50 text-purple-700 border border-purple-200">{{ selectedProgram.field_name }}</span>
+                    <span v-if="selectedProgram.duration_years" class="px-2 py-0.5 rounded-full text-xs bg-gray-100 text-gray-600 border border-gray-200">{{ selectedProgram.duration_years }} yr{{ selectedProgram.duration_years !== 1 ? 's' : '' }}</span>
+                    <span v-if="selectedProgram.mode" class="px-2 py-0.5 rounded-full text-xs bg-gray-100 text-gray-600 border border-gray-200">{{ selectedProgram.mode }}</span>
+                  </div>
+                </div>
+                <!-- cluster points -->
+                <div v-if="selectedProgram.estimated_cluster_points != null" class="rounded-lg bg-green-50 border border-green-200 px-3 py-2">
+                  <div class="font-semibold text-green-800">Estimated Cluster Points</div>
+                  <div class="text-2xl font-bold text-green-700 mt-0.5">{{ selectedProgram.estimated_cluster_points }}</div>
+                  <div class="text-xs text-green-600 mt-0.5">Based on your KCSE grades</div>
+                </div>
+                <!-- requirements -->
+                <div v-if="selectedProgram.requirement_groups?.length">
+                  <div class="font-semibold text-gray-800 mb-1">Subject Requirements</div>
+                  <div class="space-y-2">
+                    <div v-for="(grp, gi) in selectedProgram.requirement_groups" :key="gi" class="rounded-lg border border-gray-100 bg-gray-50 px-3 py-2">
+                      <div class="text-xs font-medium text-gray-700 mb-1">
+                        {{ grp.name || 'Group' }}
+                        <span class="font-normal text-gray-500">(pick {{ grp.pick }})</span>
+                      </div>
+                      <div class="flex flex-wrap gap-1.5">
+                        <span
+                          v-for="(opt, oi) in grp.options" :key="oi"
+                          class="inline-flex items-center gap-1 px-2 py-0.5 rounded text-xs bg-white border border-gray-200 text-gray-700"
+                        >
+                          <span class="font-mono font-semibold">{{ opt.subject_code }}</span>
+                          <span v-if="opt.min_grade" class="text-gray-500">≥ {{ opt.min_grade }}</span>
+                        </span>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+                <div v-else-if="selectedProgram.requirements_preview" class="text-xs text-gray-600">
+                  <span class="font-semibold text-gray-800">Requirements: </span>{{ selectedProgram.requirements_preview }}
+                </div>
+                <!-- cutoffs -->
+                <div v-if="selectedProgram.cutoffs?.length">
+                  <div class="font-semibold text-gray-800 mb-1">Cutoff Points</div>
+                  <table class="w-full text-xs border-collapse">
+                    <thead>
+                      <tr class="bg-gray-100">
+                        <th class="text-left px-2 py-1 rounded-tl font-medium text-gray-600">Year</th>
+                        <th class="text-right px-2 py-1 rounded-tr font-medium text-gray-600">Cutoff</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      <tr v-for="c in selectedProgram.cutoffs.slice(0, 5)" :key="c.year" class="border-t border-gray-100">
+                        <td class="px-2 py-1 text-gray-700">{{ c.year }}</td>
+                        <td class="px-2 py-1 text-right font-semibold text-gray-900">{{ c.cutoff }}</td>
+                      </tr>
+                    </tbody>
+                  </table>
+                </div>
+                <!-- costs -->
+                <div v-if="selectedProgram.costs?.length">
+                  <div class="font-semibold text-gray-800 mb-1">Tuition / Costs</div>
+                  <div class="space-y-1">
+                    <div v-for="(c, ci) in selectedProgram.costs.slice(0, 3)" :key="ci" class="text-gray-700">
+                      <span v-if="c.amount != null">{{ c.amount.toLocaleString() }} {{ c.currency }}</span>
+                      <span v-else-if="c.raw_cost">{{ c.raw_cost }}</span>
+                    </div>
+                  </div>
+                </div>
+                <!-- institution website -->
+                <div v-if="selectedProgram.institution?.website">
+                  <a
+                    :href="selectedProgram.institution.website"
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    class="text-xs text-blue-600 hover:underline inline-flex items-center gap-1"
+                  >
+                    <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14"/></svg>
+                    {{ selectedProgram.institution.website }}
+                  </a>
+                </div>
+              </div><!-- /program detail -->
+            </div><!-- /Details tab -->
+
           </div>
         </aside>
+
+
       </div>
     </div>
   </main>

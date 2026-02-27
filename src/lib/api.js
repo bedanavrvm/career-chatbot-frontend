@@ -1,7 +1,7 @@
 const base = (import.meta.env.VITE_API_BASE_URL || '').replace(/\/$/, '')
 
 class ApiError extends Error {
-  constructor (message, { status = 0, data = null, url = '', method = '', code = '', fields = null } = {}) {
+  constructor(message, { status = 0, data = null, url = '', method = '', code = '', fields = null } = {}) {
     super(message)
     this.name = 'ApiError'
     this.status = status
@@ -13,7 +13,7 @@ class ApiError extends Error {
   }
 }
 
-function normalizeErrorEnvelope (data) {
+function normalizeErrorEnvelope(data) {
   if (!data) return { detail: 'Request failed', code: '', fields: null }
 
   if (typeof data === 'string') {
@@ -40,7 +40,7 @@ function normalizeErrorEnvelope (data) {
   return { detail: 'Request failed', code, fields }
 }
 
-export function formatApiError (err) {
+export function formatApiError(err) {
   if (!err) return 'Request failed'
 
   const data = err?.data
@@ -60,7 +60,7 @@ export function formatApiError (err) {
   return baseMsg
 }
 
-async function parseBody (res) {
+async function parseBody(res) {
   if (!res) return {}
   if (res.status === 204) return {}
   const ct = String(res.headers?.get('content-type') || '').toLowerCase()
@@ -71,7 +71,7 @@ async function parseBody (res) {
   return text ? { detail: text } : {}
 }
 
-async function parseJson (res, { url = '', method = '' } = {}) {
+async function parseJson(res, { url = '', method = '' } = {}) {
   const data = await parseBody(res)
   if (!res.ok) {
     const env = normalizeErrorEnvelope(data)
@@ -88,11 +88,11 @@ async function parseJson (res, { url = '', method = '' } = {}) {
   return data
 }
 
-function sleep (ms) {
+function sleep(ms) {
   return new Promise((resolve) => setTimeout(resolve, Math.max(0, Number(ms || 0))))
 }
 
-async function request (url, options = {}) {
+async function request(url, options = {}) {
   const timeoutMs = Number(options.timeoutMs || 30000)
   const retries = Number(options.retries || 0)
   const retryDelayMs = Number(options.retryDelayMs || 400)
@@ -320,3 +320,198 @@ export async function etlGetInstitutions(params = {}) {
   const url = `${base}/api/etl/institutions${qs.toString() ? `?${qs}` : ''}`
   return request(url, { method: 'GET', timeoutMs: 30000 })
 }
+
+// Async message API (P1.1) — dispatches to Celery, returns task_id immediately.
+// Falls back to normal convPostMessage when no broker is configured (dev mode).
+export async function convPostMessageAsync(idToken, sessionId, { text, idempotencyKey = '', nlpProvider = '' }) {
+  const url = `${base}/api/conversations/sessions/${sessionId}/messages/async`
+  const payload = { text, idempotency_key: idempotencyKey }
+  if (nlpProvider) payload.nlp_provider = nlpProvider
+  return request(url, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      Authorization: `Bearer ${idToken}`,
+    },
+    body: JSON.stringify(payload),
+    timeoutMs: 15000, // should return fast — just dispatches the task
+  })
+}
+
+export async function convGetTaskStatus(idToken, taskId) {
+  const url = `${base}/api/conversations/tasks/${taskId}/status`
+  return request(url, {
+    method: 'GET',
+    headers: { Authorization: `Bearer ${idToken}` },
+    timeoutMs: 10000,
+  })
+}
+
+/**
+ * Helper: Post a message via async endpoint, then poll until resolved.
+ *
+ * @param {string}   idToken    - Firebase ID token
+ * @param {string}   sessionId  - Session UUID
+ * @param {object}   msgOpts    - { text, idempotencyKey, nlpProvider }
+ * @param {object}   [options]  - { pollIntervalMs, maxPollAttempts, onPending }
+ * @returns {Promise<object>}   The task result object once ready
+ */
+export async function convPostMessageAndPoll(
+  idToken, sessionId, msgOpts,
+  { pollIntervalMs = 1500, maxPollAttempts = 40, onPending = null } = {}
+) {
+  const dispatched = await convPostMessageAsync(idToken, sessionId, msgOpts)
+
+  // Eager mode (dev): full result already in the response
+  if (dispatched?.state === 'SUCCESS') return dispatched.result
+
+  const taskId = dispatched?.task_id
+  if (!taskId) throw new Error('Missing task_id in async response')
+
+  for (let i = 0; i < maxPollAttempts; i++) {
+    await sleep(pollIntervalMs)
+    const status = await convGetTaskStatus(idToken, taskId)
+    if (status?.state === 'SUCCESS') return status.result
+    if (status?.state === 'FAILURE') {
+      throw new ApiError(status?.error || 'Task failed', { status: 500, code: 'task_failed' })
+    }
+    if (typeof onPending === 'function') onPending(status?.state, i)
+  }
+
+  throw new ApiError('Timed out waiting for chat response', { status: 408, code: 'timeout' })
+}
+
+/**
+ * Send a message and stream the reply via SSE.
+ *
+ * The backend endpoint streams `event: delta` frames (text chunks) followed by
+ * a single `event: done` frame (JSON with session + turn_recommendations).
+ *
+ * @param {string}   idToken    - Firebase ID token
+ * @param {string}   sessionId  - Session UUID
+ * @param {object}   msgOpts    - { text, idempotencyKey, nlpProvider }
+ * @param {object}   callbacks  - { onDelta(chunk), onDone(result), onError(msg), onAbort() }
+ * @returns {{ abort: () => void }}  Call abort() to cancel the stream mid-flight
+ */
+export function convStreamMessage(
+  idToken,
+  sessionId,
+  { text, idempotencyKey = '', nlpProvider = '' } = {},
+  { onDelta = null, onDone = null, onError = null, onAbort = null } = {}
+) {
+  const url = `${base}/api/conversations/sessions/${sessionId}/messages/stream`
+  const payload = { text, idempotency_key: idempotencyKey }
+  if (nlpProvider) payload.nlp_provider = nlpProvider
+
+  const controller = typeof AbortController !== 'undefined' ? new AbortController() : null
+  const signal = controller?.signal
+
+  async function run() {
+    let res
+    try {
+      res = await fetch(url, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${idToken}`,
+        },
+        body: JSON.stringify(payload),
+        signal,
+      })
+    } catch (err) {
+      if (err && err.name === 'AbortError') {
+        if (typeof onAbort === 'function') onAbort()
+        return
+      }
+      if (typeof onError === 'function') onError(err?.message || 'Network error')
+      return
+    }
+
+    if (!res.ok) {
+      let errMsg = `HTTP ${res.status}`
+      try { const d = await res.json(); errMsg = d?.detail || d?.error || errMsg } catch (_) { }
+      if (typeof onError === 'function') onError(errMsg)
+      return
+    }
+
+    const reader = res.body.getReader()
+    const decoder = new TextDecoder()
+    let buf = ''
+    let currentEvent = ''
+
+    try {
+      while (true) {
+        const { value, done } = await reader.read()
+        if (done) break
+        buf += decoder.decode(value, { stream: true })
+
+        // SSE frames are separated by double newlines (\n\n)
+        const frames = buf.split('\n\n')
+        buf = frames.pop() ?? '' // keep incomplete frame in buffer
+
+        for (const frame of frames) {
+          let event = currentEvent || 'message'
+          let data = ''
+          for (const line of frame.split('\n')) {
+            if (line.startsWith('event:')) {
+              event = line.slice(6).trim()
+            } else if (line.startsWith('data:')) {
+              data = line.slice(5).trim()
+            }
+          }
+          currentEvent = ''
+
+          // Restore newlines that were escaped as \\n by the backend
+          const decoded = data.replace(/\\n/g, '\n')
+
+          if (event === 'delta') {
+            if (typeof onDelta === 'function') onDelta(decoded)
+          } else if (event === 'done') {
+            let parsed = null
+            try { parsed = JSON.parse(decoded) } catch (_) { }
+            if (typeof onDone === 'function') onDone(parsed)
+          } else if (event === 'error') {
+            if (typeof onError === 'function') onError(decoded || 'Stream error')
+          }
+        }
+      }
+    } catch (err) {
+      if (err && err.name === 'AbortError') {
+        if (typeof onAbort === 'function') onAbort()
+        return
+      }
+      if (typeof onError === 'function') onError(err?.message || 'Stream read error')
+    }
+  }
+
+  run()
+
+  return {
+    abort: () => controller?.abort(),
+  }
+}
+
+
+export async function catalogGetProgramDetail(programId, token = '') {
+  // GET /api/catalog/programs/{id}/ — public endpoint; token optional (enables cluster point calc)
+  const headers = { 'Content-Type': 'application/json' }
+  if (token) headers['Authorization'] = `Bearer ${token}`
+  const res = await fetch(`${base}/api/catalog/programs/${encodeURIComponent(programId)}/`, {
+    method: 'GET',
+    headers,
+  })
+  if (!res.ok) {
+    let body = null
+    try { body = await res.json() } catch (_) { }
+    const env = normalizeErrorEnvelope(body)
+    throw new ApiError(env.detail || `HTTP ${res.status}`, {
+      status: res.status,
+      data: body,
+      url: res.url,
+      method: 'GET',
+      code: env.code,
+    })
+  }
+  return res.json()
+}
+
