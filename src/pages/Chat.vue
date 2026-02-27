@@ -5,6 +5,9 @@ import { convGetSession, convPostMessage, convDeleteSession, convGetRecommendati
 import { Plus, Trash2, RefreshCw, Send, ChevronDown, Sparkles } from 'lucide-vue-next'
 import { useAuth } from '../lib/useAuth'
 import { useApiCall } from '../utils/useApiCall'
+import { subjectByCode } from './onboarding/kcseSubjects'
+
+const _KCSE_SUBJECT_BY_CODE = subjectByCode()
 
 function uuidv4 () {
   if (crypto?.randomUUID) return crypto.randomUUID()
@@ -804,7 +807,12 @@ onBeforeUnmount(() => {
                           v-for="(opt, oi) in grp.options" :key="oi"
                           class="inline-flex items-center gap-1 px-2 py-0.5 rounded text-xs bg-white border border-gray-200 text-gray-700"
                         >
-                          <span class="font-mono font-semibold">{{ opt.subject_code }}</span>
+                          <span 
+                            class="font-mono font-semibold cursor-help" 
+                            :title="_KCSE_SUBJECT_BY_CODE[opt.subject_code]?.name || opt.subject_code"
+                          >
+                            {{ opt.subject_code }}
+                          </span>
                           <span v-if="opt.min_grade" class="text-gray-500">≥ {{ opt.min_grade }}</span>
                         </span>
                       </div>

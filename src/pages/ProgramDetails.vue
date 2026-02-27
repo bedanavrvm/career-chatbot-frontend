@@ -5,6 +5,9 @@ import { ArrowLeft, ExternalLink } from 'lucide-vue-next'
 import { catalogGetProgram } from '../lib/api'
 import { useAuth } from '../lib/useAuth'
 import { useApiCall } from '../utils/useApiCall'
+import { subjectByCode } from './onboarding/kcseSubjects'
+
+const _KCSE_SUBJECT_BY_CODE = subjectByCode()
 
 const route = useRoute()
 const router = useRouter()
@@ -193,7 +196,12 @@ const clusterPointsHint = computed(() => {
               </div>
               <div v-if="g.options && g.options.length" class="mt-2 grid grid-cols-1 sm:grid-cols-2 gap-2">
                 <div v-for="(o, oidx) in g.options" :key="oidx" class="text-sm text-gray-700">
-                  <span class="font-mono">{{ o.subject_code || 'SUBJ' }}</span>
+                  <span 
+                    class="font-mono cursor-help"
+                    :title="_KCSE_SUBJECT_BY_CODE[o.subject_code]?.name || o.subject_code"
+                  >
+                    {{ o.subject_code || 'SUBJ' }}
+                  </span>
                   <span v-if="o.subject_name" class="text-gray-600"> — {{ o.subject_name }}</span>
                   <span v-if="o.min_grade" class="text-gray-900"> (min {{ o.min_grade }})</span>
                 </div>

@@ -5,6 +5,9 @@ import { ArrowLeft } from 'lucide-vue-next'
 import { onboardingDashboard } from '../lib/api'
 import { useAuth } from '../lib/useAuth'
 import { useApiCall } from '../utils/useApiCall'
+import { subjectByCode } from './onboarding/kcseSubjects'
+
+const _KCSE_SUBJECT_BY_CODE = subjectByCode()
 
 const router = useRouter()
 
@@ -147,7 +150,12 @@ function fmt(v) {
                   top4Set.has(String(s.subject_code || '').toUpperCase()) ? 'bg-brand/10' : (top7Set.has(String(s.subject_code || '').toUpperCase()) ? 'bg-brand/5' : '')
                 ]"
               >
-                <td class="py-2 pr-4 font-mono">{{ s.subject_code }}</td>
+                <td 
+                  class="py-2 pr-4 font-mono cursor-help" 
+                  :title="_KCSE_SUBJECT_BY_CODE[s.subject_code]?.name || s.subject_code"
+                >
+                  {{ s.subject_code }}
+                </td>
                 <td class="py-2 pr-4">{{ s.grade || '—' }}</td>
                 <td class="py-2 pr-4">{{ fmt(s.points) }}</td>
                 <td class="py-2">
