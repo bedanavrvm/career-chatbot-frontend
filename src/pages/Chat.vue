@@ -455,7 +455,7 @@ onBeforeUnmount(() => {
                     <template v-for="(seg, sidx) in segmentsForMessage(m)" :key="sidx">
                       <span v-if="seg.type === 'text'">{{ seg.value }}</span>
                       <button
-                        v-else
+                        v-else-if="seg.type === 'cite'"
                         type="button"
                         :class="[
                           'inline-flex items-center font-mono text-xs px-1.5 py-0.5 rounded border transition-all hover:shadow-sm active:scale-95',
@@ -465,6 +465,12 @@ onBeforeUnmount(() => {
                         ]"
                         @click="selectCitation(seg.value)"
                       >[{{ seg.value }}]</button>
+                      <button
+                        v-else-if="seg.type === 'program_code'"
+                        type="button"
+                        class="inline-flex items-center font-mono text-xs px-1.5 py-0.5 rounded border transition-all hover:shadow-sm active:scale-95 bg-blue-50 border-blue-200 text-blue-700 hover:bg-blue-100 mx-0.5"
+                        @click="openProgramDetails({ program_id: seg.value })"
+                      >{{ seg.value }}</button>
                     </template>
                   </div>
                 </div>
