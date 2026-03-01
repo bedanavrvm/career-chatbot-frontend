@@ -197,9 +197,9 @@ function splitByCitations (text) {
 }
 
 function splitByProgramCodes (text) {
-  // Parses [P1] citation tokens AND [CODE: 1263131] program code tokens.
+  // Parses [P1] citation tokens AND [CODE: 1263131] or [CODE: MED001] program code tokens.
   const s = String(text || '')
-  const re = /\[P(\d+)\]|\[CODE:\s*(\d+)\]/g
+  const re = /\[P(\d+)\]|\[CODE:\s*([a-zA-Z0-9_-]+)\]/g
   const parts = []
   let last = 0
   let m
@@ -353,6 +353,13 @@ async function sendMessage () {
           scrollToBottom()
         },
         onDone: async (resp) => {
+          if (!resp || !resp.session) {
+            error.value = 'Received invalid response format from server.'
+            if (!currentText) conversation.value.messages.pop()
+            sending.value = false
+            resolve()
+            return
+          }
           conversation.value = resp.session
           const tr = resp?.turn_recommendations
           if (tr && typeof tr === 'object') {

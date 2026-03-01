@@ -461,16 +461,16 @@ export function convStreamMessage(
           }
           currentEvent = ''
 
-          // Restore newlines that were escaped as \\n by the backend
-          const decoded = data.replace(/\\n/g, '\n')
-
           if (event === 'delta') {
+            // Restore newlines that were escaped as \\n by the backend
+            const decoded = data.replace(/\\n/g, '\n')
             if (typeof onDelta === 'function') onDelta(decoded)
           } else if (event === 'done') {
             let parsed = null
-            try { parsed = JSON.parse(decoded) } catch (_) { }
+            try { parsed = JSON.parse(data) } catch (_) { }
             if (typeof onDone === 'function') onDone(parsed)
           } else if (event === 'error') {
+            const decoded = data.replace(/\\n/g, '\n')
             if (typeof onError === 'function') onError(decoded || 'Stream error')
           }
         }
