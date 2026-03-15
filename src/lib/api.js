@@ -321,6 +321,43 @@ export async function etlGetInstitutions(params = {}) {
   return request(url, { method: 'GET', timeoutMs: 30000 })
 }
 
+export async function etlCheckEligibility({ programCode, grades }) {
+  const url = `${base}/api/etl/eligibility`
+  return request(url, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify({
+      program_code: String(programCode || '').trim(),
+      grades: grades && typeof grades === 'object' ? grades : {},
+    }),
+    timeoutMs: 30000,
+  })
+}
+
+export async function onetGetRecommendations(params = {}) {
+  const qs = new URLSearchParams()
+  const keys = ['R', 'I', 'A', 'S', 'E', 'C', 'top_n']
+  for (const k of keys) {
+    if (params[k] != null && String(params[k]).trim() !== '') qs.set(k, String(params[k]))
+  }
+  const url = `${base}/api/onet/recommendations${qs.toString() ? `?${qs}` : ''}`
+  return request(url, { method: 'GET', timeoutMs: 30000 })
+}
+
+export async function onetGetOccupationDetail(socCode) {
+  const code = String(socCode || '').trim()
+  const url = `${base}/api/onet/occupations/${encodeURIComponent(code)}`
+  return request(url, { method: 'GET', timeoutMs: 30000 })
+}
+
+export async function catalogGetProgramCareers(programId) {
+  const id = String(programId || '').trim()
+  const url = `${base}/api/catalog/programs/${encodeURIComponent(id)}/careers`
+  return request(url, { method: 'GET', timeoutMs: 30000 })
+}
+
 // Async message API (P1.1) — dispatches to Celery, returns task_id immediately.
 // Falls back to normal convPostMessage when no broker is configured (dev mode).
 export async function convPostMessageAsync(idToken, sessionId, { text, idempotencyKey = '', nlpProvider = '' }) {

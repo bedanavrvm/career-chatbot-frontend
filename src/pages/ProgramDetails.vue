@@ -2,7 +2,7 @@
 import { ref, onMounted, computed } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { ArrowLeft, ExternalLink } from 'lucide-vue-next'
-import { catalogGetProgram } from '../lib/api'
+import { catalogGetProgram, catalogGetProgramCareers, etlCheckEligibility, onboardingMe } from '../lib/api'
 import { useAuth } from '../lib/useAuth'
 import { useApiCall } from '../utils/useApiCall'
 import { subjectByCode } from './onboarding/kcseSubjects'
@@ -17,6 +17,15 @@ const { loading, error, run } = useApiCall({ toastErrors: true })
 
 const program = ref(null)
 
+const eligibilityLoading = ref(false)
+const eligibilityError = ref('')
+const eligibilityResult = ref(null)
+const savedGrades = ref(null)
+
+const careersLoading = ref(false)
+const careersError = ref('')
+const careers = ref([])
+
 const programId = computed(() => {
   const v = route.params?.id
   const n = Number(v)
@@ -25,6 +34,8 @@ const programId = computed(() => {
 
 async function load() {
   program.value = null
+  careers.value = []
+  careersError.value = ''
   if (!programId.value) {
     run(() => Promise.reject(new Error('Invalid program id')), { fallbackMessage: 'Invalid program id', silent: true })
     return
@@ -37,6 +48,33 @@ async function load() {
   }, { fallbackMessage: 'Failed to load program' })
 
   if (data) program.value = data
+
+  // Load possible careers (public endpoint)
+  careersLoading.value = true
+  try {
+    const c = await catalogGetProgramCareers(programId.value)
+    careers.value = Array.isArray(c?.results) ? c.results : []
+  } catch (e) {
+    careersError.value = e?.message || 'Failed to load careers'
+    careers.value = []
+  } finally {
+    careersLoading.value = false
+  }
+
+  // Load saved KCSE grades (optional; only if logged in)
+  try {
+    const u = user.value
+    if (!u) {
+      savedGrades.value = null
+      return
+    }
+    const token = await getIdToken(true)
+    const me = await onboardingMe(token)
+    const grades = me?.high_school?.subject_grades
+    savedGrades.value = grades && typeof grades === 'object' ? grades : null
+  } catch {
+    savedGrades.value = null
+  }
 }
 
 onMounted(load)
@@ -81,6 +119,67 @@ const clusterPointsHint = computed(() => {
   if (reason === 'need_at_least_4_cluster_subjects') return 'Add more KCSE subjects to compute the 4 cluster subjects used for this programme.'
   return ''
 })
+
+const canCheckEligibility = computed(() => {
+  const code = String(program.value?.program_code || '').trim()
+  const g = savedGrades.value
+  return !!code && g && typeof g === 'object' && Object.keys(g).length > 0
+})
+
+const eligibilityStatus = computed(() => {
+  const r = eligibilityResult.value?.result
+  if (!r || typeof r !== 'object') return null
+  if (r.eligible === true) return 'eligible'
+  if (r.eligible === false) return 'not_eligible'
+  return null
+})
+
+const eligibilityReasons = computed(() => {
+  const reasons = eligibilityResult.value?.result?.reasons
+  if (!Array.isArray(reasons)) return []
+  return reasons.filter(Boolean).map(r => String(r))
+})
+
+const eligibilityUsedPoints = computed(() => {
+  const rows = eligibilityResult.value?.result?.used_points
+  if (!Array.isArray(rows)) return []
+  // rows are tuples: [subject, grade, points]
+  return rows
+    .map((t) => {
+      if (!Array.isArray(t) || t.length < 3) return null
+      return { subject: String(t[0] || ''), grade: String(t[1] || ''), points: Number(t[2] || 0) }
+    })
+    .filter(Boolean)
+})
+
+async function checkEligibility () {
+  eligibilityError.value = ''
+  eligibilityResult.value = null
+  const code = String(program.value?.program_code || '').trim()
+  if (!code) {
+    eligibilityError.value = 'Missing program code'
+    return
+  }
+  const grades = savedGrades.value
+  if (!grades || typeof grades !== 'object' || !Object.keys(grades).length) {
+    eligibilityError.value = 'Add your KCSE grades in onboarding to check eligibility.'
+    return
+  }
+  eligibilityLoading.value = true
+  try {
+    eligibilityResult.value = await etlCheckEligibility({ programCode: code, grades })
+  } catch (e) {
+    eligibilityError.value = e?.message || 'Eligibility check failed'
+  } finally {
+    eligibilityLoading.value = false
+  }
+}
+
+function openCareer (socCode) {
+  const code = String(socCode || '').trim()
+  if (!code) return
+  router.push({ name: 'career_details', params: { soc_code: code } })
+}
 </script>
 
 <template>
@@ -180,6 +279,136 @@ const clusterPointsHint = computed(() => {
               <ExternalLink class="h-4 w-4" />
               <span>Institution website</span>
             </a>
+          </div>
+        </div>
+
+        <div class="card p-4">
+          <h2 class="text-lg font-semibold text-gray-900">Eligibility</h2>
+          <p class="mt-2 text-sm text-gray-600">
+            Check if your KCSE grades meet this programme’s requirements.
+          </p>
+
+          <div class="mt-4 flex flex-wrap items-center gap-3">
+            <button
+              class="btn btn-outline btn-md"
+              type="button"
+              :disabled="eligibilityLoading || !canCheckEligibility"
+              @click="checkEligibility"
+            >
+              <span v-if="eligibilityLoading">Checking…</span>
+              <span v-else>Check eligibility</span>
+            </button>
+            <div v-if="!user" class="text-xs text-gray-500">
+              Log in and complete onboarding to save your grades.
+            </div>
+            <div v-else-if="!canCheckEligibility" class="text-xs text-gray-500">
+              Add your KCSE subject grades in onboarding to enable this.
+            </div>
+          </div>
+
+          <p v-if="eligibilityError" class="mt-3 text-sm text-red-600">{{ eligibilityError }}</p>
+
+          <div v-if="eligibilityResult" class="mt-4">
+            <div class="flex items-center justify-between gap-3">
+              <div class="font-medium text-gray-900">Result</div>
+              <span
+                v-if="eligibilityStatus === 'eligible'"
+                class="inline-flex items-center rounded-full bg-green-100 text-green-800 text-xs font-medium px-2 py-1"
+              >
+                Eligible
+              </span>
+              <span
+                v-else-if="eligibilityStatus === 'not_eligible'"
+                class="inline-flex items-center rounded-full bg-red-100 text-red-800 text-xs font-medium px-2 py-1"
+              >
+                Not eligible
+              </span>
+              <span
+                v-else
+                class="inline-flex items-center rounded-full bg-gray-100 text-gray-800 text-xs font-medium px-2 py-1"
+              >
+                Unknown
+              </span>
+            </div>
+
+            <div class="mt-3 grid grid-cols-1 sm:grid-cols-2 gap-3">
+              <div class="border rounded-lg p-3 bg-white/60">
+                <div class="text-xs text-gray-500">Programme</div>
+                <div class="text-sm text-gray-900 font-medium">{{ eligibilityResult.program_name || program?.program_name || title }}</div>
+                <div class="text-xs text-gray-600 mt-1">Code: {{ eligibilityResult.program_code }}</div>
+              </div>
+              <div class="border rounded-lg p-3 bg-white/60">
+                <div class="text-xs text-gray-500">Estimated cluster points</div>
+                <div class="text-sm text-gray-900 font-medium">{{ eligibilityResult.result?.cluster_points ?? '—' }}</div>
+                <div class="text-xs text-gray-600 mt-1">Based on your provided KCSE grades</div>
+              </div>
+            </div>
+
+            <div class="mt-4">
+              <div class="text-sm font-medium text-gray-900">Reasons</div>
+              <p v-if="!eligibilityReasons.length" class="mt-2 text-sm text-gray-600">No issues found.</p>
+              <ul v-else class="mt-2 space-y-1 text-sm text-gray-700 list-disc pl-5">
+                <li v-for="(r, idx) in eligibilityReasons" :key="idx">{{ r }}</li>
+              </ul>
+            </div>
+
+            <div v-if="eligibilityUsedPoints.length" class="mt-4">
+              <div class="text-sm font-medium text-gray-900">Subjects used</div>
+              <div class="mt-2 overflow-x-auto">
+                <table class="min-w-full text-sm">
+                  <thead class="text-xs text-gray-500">
+                    <tr>
+                      <th class="text-left font-medium py-1 pr-3">Subject</th>
+                      <th class="text-left font-medium py-1 pr-3">Grade</th>
+                      <th class="text-left font-medium py-1 pr-3">Points</th>
+                    </tr>
+                  </thead>
+                  <tbody class="text-gray-700">
+                    <tr v-for="(row, idx) in eligibilityUsedPoints" :key="idx" class="border-t">
+                      <td class="py-2 pr-3">{{ row.subject }}</td>
+                      <td class="py-2 pr-3">{{ row.grade }}</td>
+                      <td class="py-2 pr-3">{{ row.points }}</td>
+                    </tr>
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div class="card p-4">
+          <h2 class="text-lg font-semibold text-gray-900">Possible careers</h2>
+          <p class="mt-2 text-sm text-gray-600">
+            Career outcomes mapped from this programme’s field of study.
+          </p>
+
+          <p v-if="careersError" class="mt-3 text-sm text-red-600">{{ careersError }}</p>
+
+          <div v-if="careersLoading" class="mt-4 grid grid-cols-1 gap-3">
+            <div v-for="i in 3" :key="i" class="border rounded-lg p-3 bg-white/60 animate-pulse">
+              <div class="h-4 w-2/3 bg-gray-200 rounded"></div>
+              <div class="mt-2 h-3 w-1/2 bg-gray-100 rounded"></div>
+            </div>
+          </div>
+
+          <div v-else class="mt-4 grid grid-cols-1 gap-3">
+            <div
+              v-for="(c, idx) in careers"
+              :key="c.onetsoc_code || idx"
+              class="border rounded-lg p-3 bg-white/60 cursor-pointer"
+              role="button"
+              tabindex="0"
+              @click="openCareer(c.onetsoc_code)"
+              @keydown.enter.prevent="openCareer(c.onetsoc_code)"
+            >
+              <div class="text-sm font-medium text-gray-900">{{ c.title }}</div>
+              <div class="text-xs text-gray-500 mt-1">{{ c.onetsoc_code }}</div>
+              <div class="text-sm text-gray-700 mt-2 line-clamp-3">{{ c.description }}</div>
+            </div>
+
+            <p v-if="!careers.length" class="text-sm text-gray-600">
+              No careers mapped yet for this programme’s field.
+            </p>
           </div>
         </div>
 

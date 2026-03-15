@@ -57,6 +57,12 @@ function openChat () {
   router.push({ name: 'chat' })
 }
 
+function openProgram (p) {
+  const id = Number(p?.id)
+  if (!Number.isFinite(id) || id <= 0) return
+  router.push({ name: 'program_details', params: { id: String(id) } })
+}
+
 function goPrev () {
   if (searchTimer) clearTimeout(searchTimer)
   page.value = Math.max(1, Number(page.value || 1) - 1)
@@ -141,7 +147,16 @@ onMounted(load)
         </div>
       </div>
 
-      <div v-for="(p, idx) in (data?.results || [])" :key="(p.source_index ?? `${p.program_code || ''}:${p.institution_name || ''}:${idx}`)" class="card p-4">
+      <div
+        v-for="(p, idx) in (data?.results || [])"
+        :key="(p.source_index ?? `${p.program_code || ''}:${p.institution_name || ''}:${idx}`)"
+        class="card p-4 cursor-pointer"
+        role="button"
+        tabindex="0"
+        @click="openProgram(p)"
+        @keydown.enter.prevent="openProgram(p)"
+        @keydown.space.prevent="openProgram(p)"
+      >
         <div class="flex items-start justify-between gap-4">
           <div>
             <div class="font-semibold text-gray-900">{{ p.normalized_name || p.name }}</div>

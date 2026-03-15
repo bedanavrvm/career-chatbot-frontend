@@ -19,22 +19,26 @@ const RiasecDetails = () => import('../pages/RiasecDetails.vue')
 const Programs = () => import('../pages/Programs.vue')
 const Institutions = () => import('../pages/Institutions.vue')
 const InstitutionDetails = () => import('../pages/InstitutionDetails.vue')
+const Careers = () => import('../pages/Careers.vue')
+const CareerDetails = () => import('../pages/CareerDetails.vue')
 
 const routes = [
   { path: '/', name: 'home', component: Home },
   { path: '/login', name: 'login', component: Login },
   { path: '/register', name: 'register', component: Register },
   { path: '/about', name: 'about', component: About },
-  { path: '/chat', name: 'chat', component: Chat, meta: { requiresAuth: true } },
-  { path: '/programmes', name: 'programs', component: Programs, meta: { requiresAuth: true } },
-  { path: '/institutions', name: 'institutions', component: Institutions, meta: { requiresAuth: true } },
-  { path: '/institutions/:code', name: 'institution_details', component: InstitutionDetails, meta: { requiresAuth: true } },
-  { path: '/programs/:id', name: 'program_details', component: ProgramDetails, meta: { requiresAuth: true } },
+  { path: '/chat', name: 'chat', component: Chat, meta: { requiresAuth: true, requiresOnboarding: true } },
+  { path: '/programmes', name: 'programs', component: Programs },
+  { path: '/institutions', name: 'institutions', component: Institutions },
+  { path: '/institutions/:code', name: 'institution_details', component: InstitutionDetails },
+  { path: '/programs/:id', name: 'program_details', component: ProgramDetails },
+  { path: '/careers', name: 'career_matches', component: Careers },
+  { path: '/careers/:soc_code', name: 'career_details', component: CareerDetails },
   { path: '/onboarding', name: 'onboarding', component: Onboarding, meta: { requiresAuth: true } },
-  { path: '/dashboard', name: 'dashboard', component: Dashboard, meta: { requiresAuth: true } },
-  { path: '/dashboard/cluster-score', name: 'cluster_score_details', component: ClusterScoreDetails, meta: { requiresAuth: true } },
-  { path: '/dashboard/riasec', name: 'riasec_details', component: RiasecDetails, meta: { requiresAuth: true } },
-  { path: '/settings/profile', name: 'profile_settings', component: ProfileSettings, meta: { requiresAuth: true } },
+  { path: '/dashboard', name: 'dashboard', component: Dashboard, meta: { requiresAuth: true, requiresOnboarding: true } },
+  { path: '/dashboard/cluster-score', name: 'cluster_score_details', component: ClusterScoreDetails, meta: { requiresAuth: true, requiresOnboarding: true } },
+  { path: '/dashboard/riasec', name: 'riasec_details', component: RiasecDetails, meta: { requiresAuth: true, requiresOnboarding: true } },
+  { path: '/settings/profile', name: 'profile_settings', component: ProfileSettings, meta: { requiresAuth: true, requiresOnboarding: true } },
 ]
 
 const router = createRouter({
@@ -54,6 +58,7 @@ router.beforeEach(async (to, from, next) => {
     initialAuthChecked = true
   }
   const requiresAuth = to.meta?.requiresAuth
+  const requiresOnboarding = to.meta?.requiresOnboarding
   const user = auth.currentUser
   if (requiresAuth && !user) {
     next({ path: '/login', query: { redirect: to.fullPath } })
@@ -88,7 +93,7 @@ router.beforeEach(async (to, from, next) => {
         }
       } catch {}
     }
-    if (user && !isOnboarding && !isAuthPage) {
+    if (user && requiresOnboarding && !isOnboarding && !isAuthPage) {
       try {
         const status = await getOnboardingStatus({ user, getIdToken, onboardingMe })
         if (status !== 'complete') {
