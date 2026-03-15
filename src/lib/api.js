@@ -354,8 +354,21 @@ export async function onetGetOccupationDetail(socCode) {
 
 export async function catalogGetProgramCareers(programId) {
   const id = String(programId || '').trim()
-  const url = `${base}/api/catalog/programs/${encodeURIComponent(id)}/careers`
-  return request(url, { method: 'GET', timeoutMs: 30000 })
+  const qs = new URLSearchParams()
+  qs.set('per_level', '3')
+  const url = `${base}/api/catalog/programs/${encodeURIComponent(id)}/career-path?${qs}`
+  const data = await request(url, { method: 'GET', timeoutMs: 30000 })
+  // Backwards compatible: some pages expect { results: [] }
+  if (data && !Array.isArray(data.results) && data.career_path && typeof data.career_path === 'object') {
+    const path = data.career_path
+    const flat = []
+    ;['entry', 'mid', 'senior', 'unknown'].forEach((k) => {
+      const rows = Array.isArray(path?.[k]) ? path[k] : []
+      rows.forEach((r) => { flat.push(r) })
+    })
+    return { ...data, results: flat, count: flat.length }
+  }
+  return data
 }
 
 // Async message API (P1.1) — dispatches to Celery, returns task_id immediately.
