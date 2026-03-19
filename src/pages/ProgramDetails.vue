@@ -26,6 +26,24 @@ const careersLoading = ref(false)
 const careersError = ref('')
 const careers = ref([])
 
+const careersSorted = computed(() => {
+  const rows = Array.isArray(careers.value) ? careers.value.slice() : []
+  rows.sort((a, b) => {
+    const aw = a?.weight
+    const bw = b?.weight
+    const an = aw == null ? -Infinity : Number(aw)
+    const bn = bw == null ? -Infinity : Number(bw)
+    if (Number.isNaN(an) && Number.isNaN(bn)) return 0
+    if (Number.isNaN(an)) return 1
+    if (Number.isNaN(bn)) return -1
+    if (bn !== an) return bn - an
+    const ac = String(a?.onetsoc_code || '')
+    const bc = String(b?.onetsoc_code || '')
+    return ac.localeCompare(bc)
+  })
+  return rows
+})
+
 const programId = computed(() => {
   const v = route.params?.id
   const n = Number(v)
@@ -393,7 +411,7 @@ function openCareer (socCode) {
 
           <div v-else class="mt-4 grid grid-cols-1 gap-3">
             <div
-              v-for="(c, idx) in careers"
+              v-for="(c, idx) in careersSorted"
               :key="c.onetsoc_code || idx"
               class="border rounded-lg p-3 bg-white/60 cursor-pointer"
               role="button"
