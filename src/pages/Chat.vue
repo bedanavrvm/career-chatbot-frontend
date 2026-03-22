@@ -463,559 +463,323 @@ onBeforeUnmount(() => {
 </script>
 
 <template>
-  <main class="h-full box-border overflow-hidden py-4 px-3 sm:px-6 lg:px-8 flex flex-col min-h-0">
-    <div class="mx-auto max-w-screen-2xl flex flex-col min-h-0 flex-1">
-      <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2">
-        <div class="min-w-0">
-          <h1 class="text-xl font-bold text-gray-900">Conversation</h1>
-          <p class="text-xs text-gray-600 truncate">
-            <span class="hidden sm:inline">Session:</span>
-            <span class="font-mono" :title="sessionId">{{ sessionShort }}</span>
-            <span class="mx-1">·</span>
-            <span>State:</span> <span class="font-mono">{{ conversation.fsm_state }}</span>
-            <span class="hidden md:inline">
-              <span class="mx-1">·</span>
-              <span>Requested:</span> <span class="font-semibold">{{ requestedMode }}</span>
-              <span class="mx-1">·</span>
-              <span>LLM:</span> <span class="font-semibold">{{ mode }}</span>
-            </span>
-            <span v-if="retrievalMode" class="hidden lg:inline"> <span class="mx-1">·</span>Retrieval: <span class="font-semibold">{{ retrievalMode }}</span></span>
-            <span v-if="modeError" class="text-red-600"> (provider error: {{ modeError }})</span>
-          </p>
-        </div>
+  <main class="h-screen app-bg overflow-hidden flex flex-col relative">
+    <!-- background decor -->
+    <div class="absolute top-0 right-0 -z-10 w-1/3 h-1/3 bg-brand/5 blur-[120px] rounded-full"></div>
+    <div class="absolute bottom-10 left-10 -z-10 w-1/4 h-1/4 bg-brand/5 blur-[100px] rounded-full"></div>
 
-        <div class="flex flex-wrap items-center justify-end gap-2 shrink-0">
-          <button
-            class="btn btn-outline btn-sm gap-2 transition-all hover:bg-gray-50 hover:shadow-sm active:scale-[0.99] lg:hidden shrink-0"
-            type="button"
-            title="Open panel"
-            aria-label="Open panel"
-            @click="openMobilePanel"
-          >
-            <ChevronLeft class="h-4 w-4" />
-            <span>Panel</span>
-          </button>
-
-          <button
-            v-if="sidebarCollapsed"
-            class="btn btn-outline btn-sm gap-2 transition-all hover:bg-gray-50 hover:shadow-sm active:scale-[0.99] hidden lg:inline-flex shrink-0"
-            type="button"
-            title="Show panel"
-            aria-label="Show panel"
-            @click="sidebarCollapsed = false"
-          >
-            <ChevronLeft class="h-4 w-4" />
-            <span>Show panel</span>
-          </button>
-
-          <label class="inline-flex items-center gap-2 text-sm text-gray-700 border rounded-lg bg-white/70 px-2 py-1.5 md:px-3 md:py-2 shrink-0">
-            <span class="text-gray-600 hidden sm:inline">Local</span>
-            <input type="checkbox" v-model="useGemini" class="h-4 w-4" />
-            <span class="text-gray-900 hidden sm:inline">Gemini</span>
-            <span class="sr-only sm:hidden">Toggle Gemini</span>
-          </label>
-          <button
-            class="btn btn-outline btn-sm gap-2 transition-all hover:bg-gray-50 hover:shadow-sm active:scale-[0.99] shrink-0"
-            type="button"
-            title="New session"
-            aria-label="New session"
-            @click="newSession"
-          >
-            <Plus class="h-4 w-4" />
-            <span class="hidden sm:inline">New session</span>
-            <span class="sr-only sm:hidden">New session</span>
-          </button>
-          <button
-            class="btn btn-outline btn-sm gap-2 transition-all hover:bg-red-50 hover:text-red-700 hover:border-red-200 hover:shadow-sm active:scale-[0.99] shrink-0"
-            type="button"
-            title="Clear session"
-            aria-label="Clear session"
-            @click="clearSession"
-          >
-            <Trash2 class="h-4 w-4" />
-            <span class="hidden sm:inline">Clear session</span>
-            <span class="sr-only sm:hidden">Clear session</span>
-          </button>
+    <header class="w-full bg-white/40 backdrop-blur-md border-b border-white/80 px-4 py-3 sm:px-6 flex items-center justify-between gap-4 shrink-0">
+      <div class="min-w-0">
+        <h1 class="text-xl font-black text-gray-900 tracking-tight flex items-center gap-2">
+          Gemini Assistant
+          <span class="inline-flex h-2 w-2 rounded-full bg-brand animate-pulse"></span>
+        </h1>
+        <div class="flex items-center gap-2 text-[10px] font-bold text-gray-500 uppercase tracking-widest truncate">
+          <span class="bg-gray-100 px-1.5 py-0.5 rounded">{{ sessionShort }}</span>
+          <span class="mx-0.5 opacity-30">/</span>
+          <span class="text-brand">{{ requestedMode }}</span>
+          <span class="mx-0.5 opacity-30">/</span>
+          <span class="text-slate-600">{{ mode }}</span>
         </div>
       </div>
 
-      <div class="mt-3 grid grid-cols-1 lg:grid-cols-5 gap-5 sm:gap-8 min-h-0 flex-1">
-        <section :class="['min-h-0', sidebarCollapsed ? 'lg:col-span-5' : 'lg:col-span-3']">
-          <div class="border rounded-xl p-3 sm:p-4 bg-white/60 flex flex-col h-full min-h-0">
-            <div ref="scroller" class="flex-1 overflow-y-auto pr-2 min-h-0">
-              <div v-for="(m, idx) in conversation.messages" :key="idx" class="mb-3">
-                <div :class="['flex', m.role === 'user' ? 'justify-end' : 'justify-start']">
-                  <div
+      <div class="flex items-center gap-2">
+        <!-- Providers Toggle -->
+        <label class="hidden sm:flex items-center gap-2 px-3 py-1.5 rounded-xl bg-white/60 border border-white shadow-sm cursor-pointer hover:bg-white transition-colors">
+          <span class="text-[10px] font-black uppercase tracking-widest text-gray-400" :class="!useGemini ? 'text-brand' : ''">Local</span>
+          <div class="relative inline-flex h-5 w-9 items-center rounded-full bg-slate-200 transition-colors" @click.stop="useGemini = !useGemini">
+            <span :class="['inline-block h-3.5 w-3.5 transform rounded-full bg-white transition-transform', useGemini ? 'translate-x-5' : 'translate-x-1']"></span>
+          </div>
+          <span class="text-[10px] font-black uppercase tracking-widest text-gray-400" :class="useGemini ? 'text-brand' : ''">Gemini</span>
+        </label>
+
+        <button 
+          class="btn-outline btn-sm h-9 border-slate-200 bg-white shadow-sm lg:hidden"
+          @click="openMobilePanel"
+        >
+          <ChevronLeft class="h-4 w-4" />
+          <span class="hidden sm:inline">Panel</span>
+        </button>
+
+        <div class="h-6 w-px bg-gray-200 mx-1 hidden sm:block"></div>
+
+        <button 
+          class="btn-outline btn-sm h-9 px-3 border-transparent hover:bg-white/50"
+          title="New session"
+          @click="newSession"
+        >
+          <Plus class="h-4 w-4" />
+        </button>
+
+        <button 
+          class="btn-outline btn-sm h-9 px-3 border-transparent hover:bg-red-50 hover:text-red-600"
+          title="Clear session"
+          @click="clearSession"
+        >
+          <Trash2 class="h-4 w-4" />
+        </button>
+      </div>
+    </header>
+
+    <div class="flex-1 flex min-h-0 overflow-hidden">
+      <!-- Chat Main -->
+      <section :class="['flex-1 flex flex-col min-w-0 h-full transition-all duration-300', sidebarCollapsed ? 'lg:pr-0' : 'lg:pr-0']">
+        <!-- Messages Area -->
+        <div ref="scroller" class="flex-1 overflow-y-auto px-4 py-6 sm:px-8 space-y-6">
+          <div v-for="(m, idx) in conversation.messages" :key="idx" class="flex flex-col" :class="m.role === 'user' ? 'items-end' : 'items-start'">
+            
+            <!-- Message Label -->
+            <span class="text-[10px] font-black uppercase tracking-widest text-gray-400 mb-1.5 px-2">
+              {{ m.role === 'user' ? 'You' : 'Assistant' }}
+            </span>
+
+            <div
+              :class="[
+                'max-w-[85%] sm:max-w-[70%] p-4 shadow-sm relative group transition-all duration-300',
+                m.role === 'user'
+                  ? 'bg-brand text-white rounded-3xl rounded-tr-sm shadow-brand/10'
+                  : 'glass-card bg-white/80 text-gray-900 rounded-3xl rounded-tl-sm border-white/60'
+              ]"
+            >
+              <div class="text-[15px] leading-relaxed whitespace-pre-wrap break-words">
+                <template v-for="(seg, sidx) in segmentsForMessage(m)" :key="sidx">
+                  <span v-if="seg.type === 'text'">{{ seg.value }}</span>
+                  <button
+                    v-else-if="seg.type === 'cite'"
+                    type="button"
                     :class="[
-                      'max-w-[88%] sm:max-w-[75%] px-3 sm:px-4 py-2 whitespace-pre-wrap break-words shadow-sm',
+                      'inline-flex items-center font-black text-[10px] px-1.5 py-0.5 rounded-lg border transition-all mx-0.5',
                       m.role === 'user'
-                        ? 'bg-brand text-white rounded-2xl rounded-br-md'
-                        : 'bg-gray-100 text-gray-900 rounded-2xl rounded-bl-md'
+                        ? 'bg-white/20 border-white/20 text-white hover:bg-white/30'
+                        : 'bg-brand/5 border-brand/10 text-brand hover:bg-brand/10'
                     ]"
-                  >
-                    <template v-for="(seg, sidx) in segmentsForMessage(m)" :key="sidx">
-                      <span v-if="seg.type === 'text'">{{ seg.value }}</span>
-                      <button
-                        v-else-if="seg.type === 'cite'"
-                        type="button"
-                        :class="[
-                          'inline-flex items-center font-mono text-xs px-1.5 py-0.5 rounded border transition-all hover:shadow-sm active:scale-95',
-                          m.role === 'user'
-                            ? 'bg-white/15 border-white/25 text-white hover:bg-white/20'
-                            : 'bg-white/60 border-gray-200 text-gray-700 hover:bg-white'
-                        ]"
-                        @click="selectCitation(seg.value)"
-                      >[{{ seg.value }}]</button>
-                      <button
-                        v-else-if="seg.type === 'program_code'"
-                        type="button"
-                        class="inline-flex items-center font-mono text-xs px-1.5 py-0.5 rounded border transition-all hover:shadow-sm active:scale-95 bg-blue-50 border-blue-200 text-blue-700 hover:bg-blue-100 mx-0.5"
-                        @click="openProgramDetails({ program_id: seg.value })"
-                      >{{ seg.value }}</button>
-                    </template>
-                  </div>
-                </div>
+                    @click="selectCitation(seg.value)"
+                  >{{ seg.value }}</button>
+                  <button
+                    v-else-if="seg.type === 'program_code'"
+                    type="button"
+                    class="inline-flex items-center font-black text-[10px] px-2 py-0.5 rounded-lg border border-blue-200 bg-blue-50 text-blue-700 hover:bg-blue-100 transition-colors mx-0.5"
+                    @click="openProgramDetails({ program_id: seg.value })"
+                  >{{ seg.value }}</button>
+                </template>
+              </div>
+
+              <!-- Time display on hover -->
+              <div class="absolute top-1 opacity-0 group-hover:opacity-100 transition-opacity text-[9px] font-bold text-white/40 pointer-events-none" :class="m.role === 'user' ? '-left-12' : '-right-12'">
+                {{ new Date(m.created_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) }}
               </div>
             </div>
+          </div>
 
-            <form class="mt-4 flex gap-2" @submit.prevent="sendMessage">
-              <input ref="inputEl" v-model="input" type="text" class="input flex-1" placeholder="Ask for programs, requirements, or career guidance…" />
+          <div v-if="error" class="mx-auto max-w-md p-4 bg-red-50 border border-red-100 rounded-2xl text-red-600 text-sm flex items-center gap-3">
+             <div class="h-2 w-2 rounded-full bg-red-500"></div>
+             {{ error }}
+          </div>
+        </div>
+
+        <!-- Input Bar Area -->
+        <div class="px-4 py-4 sm:px-8 sm:pb-8 shrink-0">
+          <div class="max-w-3xl mx-auto flex flex-col gap-3">
+            
+            <!-- Suggestions Chip Carousel -->
+            <div class="flex items-center gap-2 overflow-x-auto no-scrollbar py-1">
+              <span class="text-[10px] font-black text-gray-400 uppercase tracking-widest whitespace-nowrap">Suggested:</span>
               <button
-                class="btn btn-primary rounded-2xl px-4 py-3 min-w-12 gap-2 shrink-0 transition-all hover:shadow-sm active:scale-[0.99] disabled:opacity-60"
+                v-for="sug in [activeTry]"
+                :key="sug"
+                type="button"
+                class="whitespace-nowrap bg-white/60 border border-white px-3 py-1.5 rounded-full text-xs font-bold text-gray-600 hover:bg-brand hover:text-white hover:border-brand transition-all shadow-sm"
+                @click="applyHint(sug)"
+              >
+                {{ sug }}
+              </button>
+            </div>
+
+            <!-- Main Input Floating Bar -->
+            <form class="relative group" @submit.prevent="sendMessage">
+              <input 
+                ref="inputEl" 
+                v-model="input" 
+                type="text" 
+                class="w-full h-14 pl-6 pr-32 rounded-3xl bg-white/80 backdrop-blur-xl border-2 border-white/60 shadow-xl shadow-slate-200/50 text-gray-900 placeholder:text-gray-400 focus:outline-none focus:border-brand/30 focus:ring-4 focus:ring-brand/5 transition-all text-[15px] font-medium" 
+                placeholder="Ask your career advisor..." 
+              />
+              <button
+                class="absolute right-2 top-2 bottom-2 px-6 rounded-2xl bg-brand text-white font-black text-xs uppercase tracking-widest shadow-lg shadow-brand/20 hover:shadow-brand/30 active:scale-95 disabled:opacity-50 transition-all flex items-center gap-2"
                 type="submit"
                 :disabled="sending"
-                title="Send"
-                aria-label="Send"
               >
-                <Send class="h-4 w-4" />
-                <span class="hidden sm:inline">{{ sending ? 'Sending…' : 'Send' }}</span>
-                <span class="sr-only sm:hidden">{{ sending ? 'Sending…' : 'Send' }}</span>
+                <span v-if="!sending">Send</span>
+                <RefreshCw v-else class="h-3.5 w-3.5 animate-spin" />
+                <Send v-if="!sending" class="h-3.5 w-3.5" />
               </button>
             </form>
-
-            <div class="mt-2 flex items-center gap-2">
-              <div class="inline-flex items-center gap-1.5 text-[11px] text-gray-500 shrink-0">
-                <span>Try:</span>
-              </div>
-              <button
-                type="button"
-                class="chip-btn"
-                @click="applyHint(activeTry)"
-              >{{ activeTry }}</button>
-            </div>
-
-            <p v-if="error" class="text-sm text-red-600 mt-2">{{ error }}</p>
           </div>
-        </section>
+        </div>
+      </section>
 
-        <div
-          v-if="mobilePanelOpen"
-          class="fixed inset-0 bg-black/40 z-40 lg:hidden"
-          role="button"
-          tabindex="0"
-          aria-label="Close panel"
-          @click="closeMobilePanel"
-          @keydown.enter.prevent="closeMobilePanel"
-        ></div>
+      <!-- Side Panel -->
+      <aside
+        v-if="showPanel"
+        :class="[
+          'z-50 lg:z-auto transition-all duration-500 ease-in-out h-full overflow-hidden flex flex-col',
+          'fixed inset-y-0 right-0 w-full sm:w-[460px] max-w-full bg-white/95 backdrop-blur-3xl shadow-2xl lg:shadow-none lg:bg-transparent lg:static lg:w-auto lg:col-span-2',
+          mobilePanelOpen ? 'translate-x-0' : 'translate-x-full lg:translate-x-0',
+          sidebarCollapsed ? 'hidden' : 'block'
+        ]"
+      >
+        <div class="h-full flex flex-col bg-white/40 border-l border-white/80 lg:rounded-3xl lg:border-2 lg:shadow-xl lg:shadow-slate-200/50 m-2 lg:m-4 overflow-hidden text-sm">
+          
+          <!-- Panel Header -->
+          <div class="p-4 border-b border-white/60 flex items-center justify-between shrink-0">
+             <div class="flex items-center gap-2">
+                <div class="h-2 w-2 rounded-full bg-brand"></div>
+                <h2 class="text-sm font-black text-gray-900 uppercase tracking-widest">Intelligence</h2>
+             </div>
+             <button
+               class="h-8 w-8 rounded-xl bg-white border border-slate-200 flex items-center justify-center text-gray-400 hover:text-brand hover:border-brand transition-all shadow-sm group"
+               @click="sidebarCollapsed = true; closeMobilePanel()"
+             >
+               <ChevronRight class="h-4 w-4 group-hover:translate-x-0.5 transition-transform" />
+             </button>
+          </div>
 
-        <aside
-          v-if="showPanel"
-          :class="[
-            'min-h-0 z-50 lg:z-auto',
-            'fixed inset-y-0 right-0 w-full sm:w-[420px] max-w-full bg-white/95 backdrop-blur border-l shadow-xl transform transition-transform lg:transform-none',
-            'lg:static lg:col-span-2 lg:w-auto lg:bg-transparent lg:border-0 lg:backdrop-blur-0 lg:shadow-none',
-            mobilePanelOpen ? 'translate-x-0' : 'translate-x-full lg:translate-x-0'
-          ]"
-          aria-label="Recommendations and details panel"
-        >
-          <div class="border rounded-xl bg-white/60 h-full min-h-0 flex flex-col overflow-hidden lg:h-full">
+          <!-- Tab Bar -->
+          <div class="flex p-1 bg-gray-100/30 shrink-0 mx-4 mt-4 rounded-2xl border border-white">
+            <button
+              v-for="t in ['recommendations', 'details']"
+              :key="t"
+              :class="[
+                'flex-1 py-2 text-[10px] font-black uppercase tracking-widest rounded-xl transition-all',
+                rightTab === t ? 'bg-white text-brand shadow-sm shadow-slate-200' : 'text-gray-400 hover:text-gray-600'
+              ]"
+              @click="rightTab = t"
+            >
+              {{ t }}
+            </button>
+          </div>
 
-            <div class="flex items-center justify-between gap-2 p-3 border-b shrink-0 lg:hidden">
-              <div class="text-sm font-semibold text-gray-900">Panel</div>
-              <button
-                type="button"
-                class="btn btn-outline btn-sm gap-2"
-                aria-label="Close panel"
-                @click="closeMobilePanel"
-              >
-                <ChevronRight class="h-4 w-4" />
-                <span>Close</span>
-              </button>
-            </div>
-
-            <div class="hidden lg:flex items-center justify-between gap-2 px-3 py-2 border-b shrink-0">
-              <div class="text-sm font-semibold text-gray-900">Recommendations</div>
-              <button
-                type="button"
-                class="btn btn-outline btn-sm gap-2"
-                aria-label="Hide panel"
-                @click="sidebarCollapsed = true"
-              >
-                <ChevronRight class="h-4 w-4" />
-                <span>Hide</span>
-              </button>
-            </div>
-
-            <!-- Tab bar -->
-            <div class="flex border-b shrink-0">
-              <button
-                type="button"
-                :class="[
-                  'flex-1 py-2.5 text-sm font-medium transition-colors',
-                  rightTab === 'recommendations'
-                    ? 'border-b-2 border-brand text-brand'
-                    : 'text-gray-500 hover:text-gray-800'
-                ]"
-                @click="rightTab = 'recommendations'"
-              >Recommendations</button>
-              <button
-                type="button"
-                :class="[
-                  'flex-1 py-2.5 text-sm font-medium transition-colors',
-                  rightTab === 'details'
-                    ? 'border-b-2 border-brand text-brand'
-                    : 'text-gray-500 hover:text-gray-800'
-                ]"
-                @click="rightTab = 'details'"
-              >
-                Details
-                <span v-if="selectedProgram" class="ml-1 text-xs text-gray-400 font-normal hidden sm:inline">· {{ (selectedProgram.program_name || '').slice(0, 16) }}…</span>
-              </button>
-            </div>
-
-            <!-- Recommendations tab -->
-            <div v-show="rightTab === 'recommendations'" class="flex-1 overflow-y-auto p-4">
-              <div class="flex items-center justify-between mb-3">
-                <h2 class="text-lg font-semibold text-gray-900">Recommendations</h2>
-                <div class="flex items-center gap-2">
-                  <button
-                    v-if="recsK > 10"
-                    class="btn btn-outline btn-sm"
-                    type="button"
-                    title="Show fewer"
-                    aria-label="Show fewer"
-                    @click="resetRecsCount"
-                  >Less</button>
-                  <button
-                    class="btn btn-outline btn-sm gap-2 transition-all hover:bg-gray-50 hover:shadow-sm active:scale-[0.99]"
-                    type="button"
-                    title="Refresh"
-                    aria-label="Refresh"
-                    @click="loadRecommendations"
-                  >
-                    <RefreshCw class="h-4 w-4" />
-                    <span class="hidden sm:inline">Refresh</span>
-                    <span class="sr-only sm:hidden">Refresh</span>
-                  </button>
+          <!-- Content Area -->
+          <div class="flex-1 overflow-y-auto custom-scrollbar">
+            <!-- RECOMMENDATIONS TAB -->
+            <div v-show="rightTab === 'recommendations'" class="p-4 sm:p-6 space-y-6">
+              <div class="flex items-center justify-between">
+                <div class="flex items-center gap-3">
+                  <div class="h-10 w-10 rounded-2xl bg-brand/5 text-brand flex items-center justify-center shrink-0">
+                    <Sparkles class="h-6 w-6" />
+                  </div>
+                  <div>
+                    <h3 class="text-base font-black text-gray-900">Program Matches</h3>
+                    <p class="text-[10px] text-gray-500 font-bold uppercase tracking-widest">{{ recs.length }} results identified</p>
+                  </div>
                 </div>
-              </div>
-
-              <div class="mt-2 text-xs text-gray-500">Showing up to {{ recsK }} results</div>
-              <p v-if="recsError" class="text-sm text-red-600 mt-2">{{ recsError }}</p>
-              <div v-if="recsLoading && !recs.length" class="mt-3 grid grid-cols-1 gap-3">
-                <div v-for="i in 6" :key="i" class="card p-3 animate-pulse">
-                  <div class="h-4 bg-gray-200 rounded w-3/4"></div>
-                  <div class="mt-2 h-3 bg-gray-100 rounded w-2/3"></div>
-                  <div class="mt-2 h-3 bg-gray-100 rounded w-1/2"></div>
-                </div>
-              </div>
-              <div v-else-if="!recs.length" class="text-sm text-gray-600 mt-3 flex items-start gap-2">
-                <Sparkles class="h-4 w-4 text-gray-400 mt-0.5" />
-                <div>
-                  <div class="font-medium text-gray-800">No recommendations yet</div>
-                  <div class="text-xs text-gray-500 mt-0.5">Share your grades and interests to personalize results.</div>
-                </div>
-              </div>
-              <div v-else class="mt-3 grid grid-cols-1 gap-3">
-                <div
-                  v-for="r in recs"
-                  :key="r.institutions?.[0]?.program_id || r.institutions?.[0]?.program_code || r.program_name"
-                  class="card p-3"
+                <button
+                  class="h-8 w-8 rounded-xl bg-white border border-slate-200 flex items-center justify-center text-gray-400 hover:text-brand hover:border-brand transition-all shadow-sm"
+                  @click="loadRecommendations"
                 >
-                  <div class="flex items-start justify-between gap-4 mb-3">
-                    <div class="min-w-0">
-                      <div class="flex items-start gap-2 min-w-0">
-                        <div class="font-semibold text-gray-900 leading-snug break-words">{{ r.program_name }}</div>
-                      </div>
-                    </div>
-                  </div>
-                  
-                  <div class="space-y-3 pl-2 border-l-2 border-primary/20">
-                    <div 
-                      v-for="(inst, instIdx) in r.institutions" 
-                      :key="inst.program_id || inst.institution_code || instIdx"
-                      :class="['group hover:bg-gray-50 rounded p-2 -ml-2 transition-colors', inst.program_id ? 'cursor-pointer' : 'opacity-70']"
-                      :role="inst.program_id ? 'button' : null"
-                      :tabindex="inst.program_id ? 0 : -1"
-                      @click="() => inst.program_id && openProgramDetails({...r, ...inst})"
-                      @keydown.enter="() => inst.program_id && openProgramDetails({...r, ...inst})"
-                    >
-                      <div class="flex items-start justify-between gap-3">
-                        <div class="min-w-0 flex-1">
-                          <div class="flex items-center gap-2 flex-wrap">
-                             <div class="text-sm font-medium text-gray-800">
-                               {{ inst.institution_name }}
-                             </div>
-                             <span
-                                v-if="inst.eligibility && inst.eligibility.eligible === true"
-                                class="inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-medium bg-green-50 text-green-700 border border-green-200 whitespace-nowrap"
-                              >Eligible</span>
-                              <span
-                                v-else-if="inst.eligibility && inst.eligibility.eligible === false"
-                                class="inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-medium bg-red-50 text-red-700 border border-red-200 whitespace-nowrap"
-                              >Not eligible</span>
-                              <span
-                                v-else
-                                class="inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-medium bg-gray-50 text-gray-700 border border-gray-200 whitespace-nowrap"
-                              >Unknown</span>
-                          </div>
-                        </div>
-
-                        <div class="text-right shrink-0 flex flex-col items-end gap-1">
-                          <div v-if="inst.program_code" class="font-mono text-xs bg-primary/10 text-primary px-1.5 py-0.5 rounded border border-primary/20">{{ inst.program_code }}</div>
-                        </div>
-                      </div>
-                    </div>
-                  </div>
-                </div>
-              </div>
-
-              <div v-if="recs.length && recs.length >= recsK && recsK < recsMax" class="mt-4">
-                <button class="btn btn-outline btn-sm gap-2" type="button" @click="showMoreRecs">
-                  <ChevronDown class="h-4 w-4" />
-                  <span>Show more</span>
+                  <RefreshCw class="h-4 w-4" :class="recsLoading ? 'animate-spin' : ''" />
                 </button>
               </div>
 
-              <section v-if="stretchRecs.length" class="mt-6">
-                <div class="flex items-center justify-between">
-                  <h3 class="text-base font-semibold text-gray-900">Aspirational / Stretch</h3>
-                  <div class="text-xs text-gray-600">{{ stretchRecs.length }} suggested</div>
+              <p v-if="recsError" class="p-3 rounded-xl bg-red-50 text-xs text-red-600 font-medium">{{ recsError }}</p>
+
+              <div v-if="recsLoading && !recs.length" class="space-y-4">
+                <div v-for="i in 3" :key="i" class="glass-card p-5 animate-pulse">
+                  <div class="h-4 bg-slate-200 rounded-full w-3/4 mb-3"></div>
+                  <div class="h-3 bg-slate-100 rounded-full w-1/2"></div>
                 </div>
-                <p class="mt-1 text-xs text-gray-600">These match your goal, but you're not eligible yet. Check missing subjects/grades or the cutoff gap.</p>
-                <div class="mt-3 grid grid-cols-1 gap-3">
-                  <div
-                    v-for="(r, rIdx) in stretchRecs"
-                    :key="`stretch:${r.institutions?.[0]?.program_id || r.institutions?.[0]?.program_code || r.program_name || rIdx}`"
-                    class="card p-3 border-amber-200 bg-amber-50/40"
-                  >
-                    <div class="flex items-start justify-between gap-4 mb-3">
-                      <div class="min-w-0 flex-1">
-                        <div class="flex items-start gap-2 min-w-0">
-                          <div class="font-medium text-gray-900 leading-snug break-words">{{ r.program_name }}</div>
-                          <span class="inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-medium bg-amber-100 text-amber-800 border border-amber-200 whitespace-nowrap shrink-0 mt-0.5">
-                            Stretch
-                          </span>
-                        </div>
-                      </div>
-                    </div>
+              </div>
 
-                    <div class="space-y-3 pl-2 border-l-2 border-amber-300/40">
-                      <div 
-                        v-for="(inst, instIdx) in r.institutions" 
-                        :key="`inst-stretch-${inst.program_id || inst.institution_code || instIdx}`"
-                        :class="['group hover:bg-amber-50 rounded p-2 -ml-2 transition-colors', inst.program_id ? 'cursor-pointer' : 'opacity-70']"
-                        :role="inst.program_id ? 'button' : null"
-                        :tabindex="inst.program_id ? 0 : -1"
-                        @click="() => inst.program_id && openProgramDetails({...r, ...inst})"
-                        @keydown.enter="() => inst.program_id && openProgramDetails({...r, ...inst})"
-                      >
-                        <div class="flex items-start justify-between gap-3">
-                          <div class="min-w-0 flex-1">
-                            <div class="flex items-center gap-2 flex-wrap">
-                               <div class="text-sm font-medium text-gray-800">
-                                 {{ inst.institution_name }}
-                               </div>
-                               <span
-                                v-if="inst.eligibility && inst.eligibility.eligible === true"
-                                class="inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-medium bg-green-50 text-green-700 border border-green-200 whitespace-nowrap"
-                              >Eligible</span>
-                              <span
-                                v-else-if="inst.eligibility && inst.eligibility.eligible === false"
-                                class="inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-medium bg-red-50 text-red-700 border border-red-200 whitespace-nowrap"
-                              >Not eligible</span>
-                              <span
-                                v-else
-                                class="inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-medium bg-gray-50 text-gray-700 border border-gray-200 whitespace-nowrap"
-                              >Unknown</span>
-                            </div>
-                          </div>
-
-                          <div class="text-right shrink-0 flex flex-col items-end gap-1.5">
-                            <div v-if="inst.program_code" class="font-mono text-xs bg-amber-100/50 text-amber-800 px-1.5 py-0.5 rounded border border-amber-200">{{ inst.program_code }}</div>
-                          </div>
-                        </div>
+              <div v-else class="space-y-4">
+                <div
+                  v-for="r in recs"
+                  :key="recKey(r)"
+                  class="glass-card p-4 hover:shadow-premium transition-all duration-300 group border-white/60"
+                >
+                  <h4 class="font-bold text-gray-900 leading-tight group-hover:text-brand transition-colors mb-4">{{ r.program_name }}</h4>
+                  
+                  <div class="space-y-1.5">
+                    <div 
+                      v-for="(inst, instIdx) in r.institutions" 
+                      :key="inst.program_id || instIdx"
+                      class="flex items-center justify-between p-2 rounded-xl hover:bg-brand/5 cursor-pointer transition-colors"
+                      @click="() => inst.program_id && openProgramDetails({...r, ...inst})"
+                    >
+                      <div class="min-w-0 flex-1 flex items-center gap-2">
+                        <div class="h-1.5 w-1.5 rounded-full bg-brand/30"></div>
+                        <span class="text-xs font-bold text-gray-600 truncate uppercase tracking-tight">{{ inst.institution_name }}</span>
                       </div>
+                      <span
+                        v-if="inst.eligibility?.eligible"
+                        class="text-[9px] font-black uppercase tracking-widest text-emerald-600 bg-emerald-50 px-1.5 py-0.5 rounded-lg border border-emerald-100"
+                      >Qualified</span>
                     </div>
                   </div>
                 </div>
-              </section>
-
-              <section v-if="citedSources.length" class="mt-6">
-                <div class="flex items-center justify-between">
-                  <h2 class="text-lg font-semibold text-gray-900">Sources</h2>
-                  <div class="text-xs text-gray-600">Cited: <span class="font-mono">{{ citedIds.join(', ') }}</span></div>
-                </div>
-                <div class="mt-3 grid grid-cols-1 gap-3">
-                  <div
-                    v-for="s in citedSources"
-                    :key="s.citation"
-                    :id="`source-${s.citation}`"
-                    :class="['card p-4', activeCitation === s.citation ? 'ring-2 ring-brand/50' : '']"
-                  >
-                    <div class="flex items-start justify-between gap-4">
-                      <div>
-                        <div class="font-semibold text-gray-900">
-                          <span class="font-mono text-xs text-gray-600 mr-2">[{{ s.citation }}]</span>
-                          {{ s.program_name || 'Program' }}
-                        </div>
-                        <div class="text-sm text-gray-600">
-                          {{ s.institution_name || '' }}
-                          <span v-if="s.level"> · {{ s.level }}</span>
-                          <span v-if="s.region"> · {{ s.region }}</span>
-                          <span v-if="s.campus"> · {{ s.campus }}</span>
-                        </div>
-                        <div v-if="s.requirements_preview" class="text-xs text-gray-500 mt-1">Reqs: {{ s.requirements_preview }}</div>
-                      </div>
-                      <div class="text-right text-xs text-gray-600 shrink-0">
-                        <div v-if="s.program_code" class="font-mono">{{ s.program_code }}</div>
-                        <div v-if="s.field_name">{{ s.field_name }}</div>
-                      </div>
-                    </div>
-                    <div v-if="s.latest_cutoff || s.cost" class="mt-2 text-xs text-gray-600">
-                      <span v-if="s.latest_cutoff && s.latest_cutoff.cutoff != null">Cutoff {{ s.latest_cutoff.year }}: {{ s.latest_cutoff.cutoff }}</span>
-                      <span v-if="s.cost && s.cost.amount != null">
-                        <span v-if="s.latest_cutoff && s.latest_cutoff.cutoff != null"> · </span>
-                        Cost: {{ s.cost.amount }} {{ s.cost.currency }}
-                      </span>
-                      <span v-else-if="s.cost && s.cost.raw_cost">
-                        <span v-if="s.latest_cutoff && s.latest_cutoff.cutoff != null"> · </span>
-                        Cost: {{ s.cost.raw_cost }}
-                      </span>
-                    </div>
-                  </div>
-                </div>
-              </section>
-            </div><!-- /Recommendations tab -->
-
-            <!-- Details tab -->
-            <div v-show="rightTab === 'details'" class="flex-1 overflow-y-auto p-4">
-              <!-- loading -->
-              <div v-if="programLoading" class="flex flex-col gap-3 mt-2">
-                <div v-for="i in 5" :key="i" class="h-4 bg-gray-200 rounded animate-pulse" :style="{ width: [75, 55, 90, 60, 40][i-1] + '%' }"></div>
               </div>
-              <!-- error -->
-              <p v-else-if="programError" class="text-sm text-red-600 mt-2">{{ programError }}</p>
-              <!-- empty state -->
-              <div v-else-if="!selectedProgram" class="flex flex-col items-center justify-center h-40 gap-3 text-center">
-                <svg class="w-10 h-10 text-gray-300" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/></svg>
-                <p class="text-sm text-gray-500">Click a program code in the chat<br>or a recommendation card<br>to see full details here.</p>
+
+              <!-- Stretch Matches -->
+              <div v-if="stretchRecs.length" class="pt-6 border-t border-white/80">
+                 <h4 class="text-[10px] font-black text-orange-500 uppercase tracking-widest mb-4">Aspirational Paths</h4>
+                 <div class="space-y-3">
+                   <div v-for="r in stretchRecs" :key="`s-${recKey(r)}`" class="p-3 rounded-2xl bg-orange-50/50 border border-orange-100 text-xs font-bold text-orange-800">
+                     {{ r.program_name }}
+                   </div>
+                 </div>
               </div>
-              <!-- program detail -->
-              <div v-else class="space-y-4 text-sm">
-                <!-- header -->
+            </div>
+
+            <!-- DETAILS TAB -->
+            <div v-show="rightTab === 'details'" class="p-4 sm:p-6 h-full flex flex-col">
+              <div v-if="programLoading" class="flex flex-col items-center justify-center py-20 gap-4">
+                <div class="h-12 w-12 border-4 border-brand/20 border-t-brand rounded-full animate-spin"></div>
+                <p class="text-xs font-black text-gray-400 uppercase tracking-widest">Analyzing Program...</p>
+              </div>
+
+              <div v-else-if="selectedProgram" class="space-y-6">
                 <div>
-                  <div class="flex items-start justify-between gap-2">
-                    <h3 class="font-bold text-gray-900 leading-snug text-base">{{ selectedProgram.program_name }}</h3>
-                    <span v-if="selectedProgram.program_code" class="font-mono text-xs text-gray-500 shrink-0 mt-0.5">{{ selectedProgram.program_code }}</span>
-                  </div>
-                  <div class="text-gray-600 mt-0.5">
-                    {{ selectedProgram.institution?.name }}
-                    <span v-if="selectedProgram.institution?.county"> · {{ selectedProgram.institution.county }}</span>
-                  </div>
-                  <div class="flex flex-wrap gap-2 mt-2">
-                    <span v-if="selectedProgram.level" class="px-2 py-0.5 rounded-full text-xs bg-blue-50 text-blue-700 border border-blue-200">{{ selectedProgram.level }}</span>
-                    <span v-if="selectedProgram.field_name" class="px-2 py-0.5 rounded-full text-xs bg-purple-50 text-purple-700 border border-purple-200">{{ selectedProgram.field_name }}</span>
-                    <span v-if="selectedProgram.duration_years" class="px-2 py-0.5 rounded-full text-xs bg-gray-100 text-gray-600 border border-gray-200">{{ selectedProgram.duration_years }} yr{{ selectedProgram.duration_years !== 1 ? 's' : '' }}</span>
-                    <span v-if="selectedProgram.mode" class="px-2 py-0.5 rounded-full text-xs bg-gray-100 text-gray-600 border border-gray-200">{{ selectedProgram.mode }}</span>
-                  </div>
-                </div>
-                <!-- cluster points -->
-                <div v-if="selectedProgram.estimated_cluster_points != null" class="rounded-lg bg-green-50 border border-green-200 px-3 py-2">
-                  <div class="font-semibold text-green-800">Estimated Cluster Points</div>
-                  <div class="text-2xl font-bold text-green-700 mt-0.5">{{ selectedProgram.estimated_cluster_points }}</div>
-                  <div class="text-xs text-green-600 mt-0.5">Based on your KCSE grades</div>
-                </div>
-                <!-- requirements -->
-                <div v-if="selectedProgram.requirement_groups?.length">
-                  <div class="font-semibold text-gray-800 mb-1">Subject Requirements</div>
-                  <div class="space-y-2">
-                    <div v-for="(grp, gi) in selectedProgram.requirement_groups" :key="gi" class="rounded-lg border border-gray-100 bg-gray-50 px-3 py-2">
-                      <div class="text-xs font-medium text-gray-700 mb-1">
-                        {{ grp.name || 'Group' }}
-                        <span class="font-normal text-gray-500">(pick {{ grp.pick }})</span>
-                      </div>
-                      <div class="flex flex-wrap gap-1.5">
-                        <span
-                          v-for="(opt, oi) in grp.options" :key="oi"
-                          class="inline-flex items-center gap-1 px-2 py-0.5 rounded text-xs bg-white border border-gray-200 text-gray-700"
-                        >
-                          <span 
-                            class="font-mono font-semibold cursor-help" 
-                            :title="_KCSE_SUBJECT_BY_CODE[opt.subject_code]?.name || opt.subject_code"
-                          >
-                            {{ opt.subject_code }}
-                          </span>
-                          <span v-if="opt.min_grade" class="text-gray-500">≥ {{ opt.min_grade }}</span>
-                        </span>
-                      </div>
-                    </div>
-                  </div>
-                </div>
-                <div v-else-if="selectedProgram.requirements_preview" class="text-xs text-gray-600">
-                  <span class="font-semibold text-gray-800">Requirements: </span>{{ selectedProgram.requirements_preview }}
-                </div>
-                <!-- cutoffs -->
-                <div v-if="selectedProgram.cutoffs?.length">
-                  <div class="font-semibold text-gray-800 mb-1">Cutoff Points</div>
-                  <table class="w-full text-xs border-collapse">
-                    <thead>
-                      <tr class="bg-gray-100">
-                        <th class="text-left px-2 py-1 rounded-tl font-medium text-gray-600">Year</th>
-                        <th class="text-right px-2 py-1 rounded-tr font-medium text-gray-600">Cutoff</th>
-                      </tr>
-                    </thead>
-                    <tbody>
-                      <tr v-for="c in selectedProgram.cutoffs.slice(0, 5)" :key="c.year" class="border-t border-gray-100">
-                        <td class="px-2 py-1 text-gray-700">{{ c.year }}</td>
-                        <td class="px-2 py-1 text-right font-semibold text-gray-900">{{ c.cutoff }}</td>
-                      </tr>
-                    </tbody>
-                  </table>
-                </div>
-                <!-- costs -->
-                <div v-if="selectedProgram.costs?.length">
-                  <div class="font-semibold text-gray-800 mb-1">Tuition / Costs</div>
-                  <div class="space-y-1">
-                    <div v-for="(c, ci) in selectedProgram.costs.slice(0, 3)" :key="ci" class="text-gray-700">
-                      <span v-if="c.amount != null">{{ c.amount.toLocaleString() }} {{ c.currency }}</span>
-                      <span v-else-if="c.raw_cost">{{ c.raw_cost }}</span>
-                    </div>
-                  </div>
-                </div>
-                <!-- institution website -->
-                <div v-if="selectedProgram.institution?.website">
-                  <a
-                    :href="selectedProgram.institution.website"
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    class="text-xs text-blue-600 hover:underline inline-flex items-center gap-1"
-                  >
-                    <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14"/></svg>
-                    {{ selectedProgram.institution.website }}
-                  </a>
+                   <span class="inline-flex px-2 py-0.5 rounded-lg bg-brand/10 text-brand text-[9px] font-black uppercase tracking-widest mb-2">{{ selectedProgram.program_code }}</span>
+                   <h3 class="text-xl font-black text-gray-900 leading-tight">{{ selectedProgram.program_name }}</h3>
+                   <p class="text-sm font-bold text-gray-500 mt-1 uppercase tracking-tight">{{ selectedProgram.institution_name }}</p>
                 </div>
 
-                <!-- career trajectory -->
-                <CareerPath v-if="careerPath" :path="careerPath" :loading="programLoading" />
-              </div><!-- /program detail -->
-            </div><!-- /Details tab -->
+                <div v-if="selectedProgram.description" class="p-4 rounded-2xl bg-slate-50 border border-slate-100">
+                   <h4 class="text-[10px] font-black text-gray-400 uppercase tracking-widest mb-2">About</h4>
+                   <p class="text-xs text-gray-600 leading-relaxed">{{ selectedProgram.description }}</p>
+                </div>
 
+                <!-- Career Path Visualization -->
+                <div v-if="careerPath" class="space-y-4">
+                  <h4 class="text-[10px] font-black text-gray-400 uppercase tracking-widest">Career Progression</h4>
+                  <div class="bg-white/40 rounded-3xl p-4 border border-white">
+                    <CareerPath :data="careerPath" />
+                  </div>
+                </div>
+              </div>
+
+              <div v-else class="flex flex-col items-center justify-center py-20 text-center gap-4 opacity-40">
+                 <div class="h-16 w-16 rounded-3xl bg-slate-100 flex items-center justify-center text-slate-400">
+                    <Plus class="h-8 w-8 rotate-45" />
+                 </div>
+                 <div>
+                    <h4 class="text-sm font-black text-gray-900 uppercase tracking-widest">No Details Selected</h4>
+                    <p class="text-[10px] text-gray-500 mt-1 font-bold">Select a program to view depth analysis</p>
+                 </div>
+              </div>
+            </div>
           </div>
-        </aside>
-
-
-      </div>
+        </div>
+      </aside>
     </div>
   </main>
 </template>
+
+<style scoped>
+.no-scrollbar::-webkit-scrollbar { display: none; }
+.no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
+
+.custom-scrollbar::-webkit-scrollbar { width: 4px; }
+.custom-scrollbar::-webkit-scrollbar-track { background: transparent; }
+.custom-scrollbar::-webkit-scrollbar-thumb { background: rgba(0,0,0,0.05); border-radius: 10px; }
+.custom-scrollbar::-webkit-scrollbar-thumb:hover { background: rgba(0,0,0,0.1); }
+</style>
