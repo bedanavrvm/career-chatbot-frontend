@@ -1,7 +1,17 @@
 <script setup>
 import { ref, onMounted, computed } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
-import { ArrowLeft, ExternalLink, GraduationCap, MapPin } from 'lucide-vue-next'
+import { 
+  ArrowLeft, 
+  GraduationCap, 
+  MapPin, 
+  Building2, 
+  Layers, 
+  History,
+  Globe,
+  Compass,
+  ArrowRight
+} from 'lucide-vue-next'
 import { catalogGetInstitution } from '../lib/api'
 import { useAuth } from '../lib/useAuth'
 import { useApiCall } from '../utils/useApiCall'
@@ -21,10 +31,7 @@ const institutionCode = computed(() => {
 
 async function load() {
   inst.value = null
-  if (!institutionCode.value) {
-    run(() => Promise.reject(new Error('Invalid institution code')), { fallbackMessage: 'Invalid institution code', silent: true })
-    return
-  }
+  if (!institutionCode.value) return
 
   const data = await run(async () => {
     const u = user.value
@@ -37,10 +44,7 @@ async function load() {
 
 onMounted(load)
 
-const title = computed(() => {
-  const i = inst.value
-  return i?.name || 'Institution'
-})
+const title = computed(() => inst.value?.name || 'Institution Detail')
 
 const campuses = computed(() => {
   const c = inst.value?.campuses
@@ -55,38 +59,28 @@ const mainCampus = computed(() => {
 const branchCampuses = computed(() => {
   const c = campuses.value
   const main = mainCampus.value
-  if (!c.length) return []
   return c.filter((x) => x && x !== main)
 })
 
 function mapsLinkForCampus(c) {
   const q = String(c?.map_query || c?.campus || '').trim()
-  if (!q) return ''
-  return `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(q)}`
+  return q ? `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(q)}` : ''
 }
 
 const embeddedMapUrl = computed(() => {
-  const c = mainCampus.value
-  const q = String(c?.map_query || '').trim()
-  if (!q) return ''
-  return `https://www.google.com/maps?q=${encodeURIComponent(q)}&output=embed`
+  const q = String(mainCampus.value?.map_query || '').trim()
+  return q ? `https://www.google.com/maps?q=${encodeURIComponent(q)}&output=embed` : ''
 })
 
 const hasAside = computed(() => {
   const m = inst.value?.metadata
-  return !!(m && typeof m === 'object' && Object.keys(m || {}).length)
+  return !!(m && typeof m === 'object' && Object.keys(m).length)
 })
-
-function back() {
-  if (window.history.length > 1) router.back()
-  else router.push('/institutions')
-}
 
 function programLabel(p) {
   const name = p?.name || p?.normalized_name || ''
   const level = (p?.level || '').trim()
-  if (!level) return name
-  return `${name} (${level})`
+  return level ? `${name} (${level})` : name
 }
 
 function campusLabel(c) {
@@ -99,7 +93,7 @@ function campusLabel(c) {
   const seen = new Set()
   const parts = []
   for (const p of raw) {
-    const k = String(p || '').trim().toLowerCase()
+    const k = p.toLowerCase()
     if (!k || seen.has(k)) continue
     seen.add(k)
     parts.push(p)
@@ -109,204 +103,202 @@ function campusLabel(c) {
 </script>
 
 <template>
-  <main class="w-full px-4 sm:px-6 lg:px-8 py-6">
-    <div class="flex items-start justify-between gap-4">
-      <div>
-        <h1 class="text-2xl font-bold text-gray-900">{{ title }}</h1>
-        <p v-if="inst" class="text-sm text-gray-600 mt-1">
-          <span v-if="inst.code" class="font-mono">{{ inst.code }}</span>
-          <span v-if="inst.code && (inst.region || inst.county)"> · </span>
-          <span v-if="inst.region">{{ inst.region }}</span>
-          <span v-if="inst.region && inst.county"> · </span>
-          <span v-if="inst.county">{{ inst.county }}</span>
-        </p>
-        <p v-if="inst?.alias" class="text-xs text-gray-500 mt-1">Alias: {{ inst.alias }}</p>
-      </div>
-      <button
-        class="btn btn-outline btn-md"
-        type="button"
-        title="Back"
-        aria-label="Back"
-        @click="back"
-      >
-        <ArrowLeft class="h-4 w-4" />
-        <span class="sr-only">Back</span>
-      </button>
-    </div>
-
-    <p v-if="error" class="mt-3 text-sm text-red-600">{{ error }}</p>
-    <div v-else-if="loading" class="mt-6 space-y-6 animate-pulse">
-      <div class="grid grid-cols-1 xl:grid-cols-2 gap-6">
-        <div class="card p-4">
-          <div class="h-5 bg-gray-200 rounded w-32"></div>
-          <div class="mt-4 grid grid-cols-1 sm:grid-cols-2 gap-3">
-            <div v-for="i in 4" :key="i" class="h-12 bg-gray-100 rounded"></div>
+  <main class="min-h-screen bg-slate-100/60 pb-20">
+    <!-- Header -->
+    <header class="bg-white/80 backdrop-blur-xl border-b border-white sticky top-0 z-30 px-4 py-4 sm:px-6">
+      <div class="max-w-7xl mx-auto flex items-center justify-between gap-4">
+        <div class="flex items-center gap-4">
+          <button 
+            @click="router.back()" 
+            class="h-10 w-10 rounded-2xl bg-white border border-slate-200 flex items-center justify-center text-gray-500 hover:text-brand hover:border-brand transition-all shadow-sm group"
+          >
+            <ArrowLeft class="h-5 w-5 group-hover:-translate-x-0.5 transition-transform" />
+          </button>
+          <div>
+            <h1 class="text-xl font-black text-gray-900 leading-tight">{{ title }}</h1>
+            <p v-if="inst" class="text-[10px] font-bold text-gray-500 uppercase tracking-widest mt-0.5">
+              {{ inst.code }} · {{ inst.region }} · {{ inst.county }}
+            </p>
           </div>
         </div>
-        <div class="card p-4">
-          <div class="h-5 bg-gray-200 rounded w-28"></div>
-          <div class="mt-4 h-56 bg-gray-100 rounded"></div>
+        <div v-if="inst?.website" class="hidden sm:block">
+           <a :href="inst.website" target="_blank" class="h-10 px-6 rounded-2xl bg-brand font-black text-white text-[10px] uppercase tracking-widest flex items-center gap-2 shadow-lg shadow-brand/20 hover:shadow-brand/30 transition-all">
+             <Globe class="h-3.5 w-3.5" />
+             Official Website
+           </a>
         </div>
       </div>
-      <div class="card p-4">
-        <div class="h-5 bg-gray-200 rounded w-28"></div>
-        <div class="mt-4 space-y-2">
-          <div v-for="i in 6" :key="i" class="h-12 bg-gray-100 rounded"></div>
-        </div>
+    </header>
+
+    <div class="max-w-7xl mx-auto px-4 py-8 sm:px-6">
+      <div v-if="loading" class="space-y-8 animate-pulse">
+         <div class="grid grid-cols-1 lg:grid-cols-2 gap-8">
+            <div class="h-64 bg-white/40 rounded-3xl border border-white"></div>
+            <div class="h-96 bg-white/40 rounded-3xl border border-white"></div>
+         </div>
+         <div class="h-96 bg-white/40 rounded-3xl border border-white"></div>
       </div>
-    </div>
 
-    <div
-      v-else-if="inst"
-      :class="['mt-6 grid gap-6', hasAside ? 'grid-cols-1 lg:grid-cols-3' : 'grid-cols-1']"
-    >
-      <section :class="[hasAside ? 'lg:col-span-2' : 'lg:col-span-3', 'space-y-6']">
-        <div class="grid grid-cols-1 xl:grid-cols-2 gap-6">
-          <div class="card p-4">
-            <h2 class="text-lg font-semibold text-gray-900">Overview</h2>
-            <div class="mt-3 grid grid-cols-1 sm:grid-cols-2 gap-3 text-sm">
-              <div>
-                <div class="text-gray-500">Region</div>
-                <div class="text-gray-900">{{ inst.region || '—' }}</div>
-              </div>
-              <div>
-                <div class="text-gray-500">County</div>
-                <div class="text-gray-900">{{ inst.county || '—' }}</div>
-              </div>
-              <div>
-                <div class="text-gray-500">Code</div>
-                <div class="font-mono text-gray-900">{{ inst.code || '—' }}</div>
-              </div>
-              <div>
-                <div class="text-gray-500">Programs in catalog</div>
-                <div class="text-gray-900 font-semibold">{{ inst.programs_count ?? (inst.programs?.length || 0) }}</div>
-              </div>
-            </div>
+      <div v-else-if="inst" class="grid grid-cols-1 lg:grid-cols-3 gap-8 items-start">
+        <div class="lg:col-span-2 space-y-8">
+           <!-- Grid: Overview & Main Campus -->
+           <div class="grid grid-cols-1 xl:grid-cols-2 gap-8">
+              <!-- Overview -->
+              <section class="glass-card-premium p-6 sm:p-8">
+                 <div class="flex items-center gap-3 mb-8">
+                    <div class="h-10 w-10 rounded-2xl bg-brand/10 text-brand flex items-center justify-center">
+                      <Building2 class="h-6 w-6" />
+                    </div>
+                    <h2 class="text-xs font-black text-gray-400 uppercase tracking-widest">Institutional Overview</h2>
+                 </div>
 
-            <div v-if="inst.website" class="mt-4">
-              <a
-                class="inline-flex items-center gap-2 text-sm text-brand-dark hover:underline"
-                :href="inst.website"
-                target="_blank"
-                rel="noopener noreferrer"
-                title="Open institution website"
-                aria-label="Open institution website"
-              >
-                <ExternalLink class="h-4 w-4" />
-                <span>Institution website</span>
-              </a>
-            </div>
-          </div>
+                 <div class="grid grid-cols-1 gap-6">
+                    <div class="flex items-center justify-between p-4 rounded-2xl bg-brand/[0.03] border border-brand/5">
+                       <div class="space-y-0.5">
+                          <p class="text-[10px] font-black text-gray-400 uppercase tracking-widest">Enrollment Scale</p>
+                          <p class="text-2xl font-black text-gray-900 leading-none">{{ inst.programs_count ?? (inst.programs?.length || 0) }}</p>
+                       </div>
+                       <div class="text-[9px] font-black text-brand uppercase tracking-widest bg-brand/10 px-3 py-1 rounded-full">Active Programs</div>
+                    </div>
 
-          <div class="card p-4">
-            <div class="flex items-center justify-between gap-4">
-              <h2 class="text-lg font-semibold text-gray-900">Campuses</h2>
-              <div v-if="campuses.length" class="text-xs text-gray-500">{{ campuses.length }} total</div>
-            </div>
+                    <div class="grid grid-cols-2 gap-4">
+                       <div class="space-y-1">
+                          <p class="text-[10px] font-black text-gray-400 uppercase tracking-widest opacity-60">Region</p>
+                          <div class="flex items-center gap-2">
+                             <MapPin class="h-3.5 w-3.5 text-orange-500" />
+                             <span class="text-sm font-black text-gray-900">{{ inst.region || '—' }}</span>
+                          </div>
+                       </div>
+                       <div class="space-y-1">
+                          <p class="text-[10px] font-black text-gray-400 uppercase tracking-widest opacity-60">County</p>
+                          <div class="flex items-center gap-2">
+                             <Compass class="h-3.5 w-3.5 text-indigo-500" />
+                             <span class="text-sm font-black text-gray-900">{{ inst.county || '—' }}</span>
+                          </div>
+                       </div>
+                    </div>
+                 </div>
+              </section>
 
-            <div v-if="mainCampus" class="mt-3">
-              <div class="text-sm font-medium text-gray-900">Main campus</div>
-              <div class="mt-2 border rounded-lg p-3 bg-white/60">
-                <div class="flex items-start justify-between gap-3">
-                  <div>
-                    <div class="text-sm text-gray-900">{{ campusLabel(mainCampus) }}</div>
-                    <a
+              <!-- Main Campus -->
+              <section v-if="mainCampus" class="glass-card-premium p-6 sm:p-8 flex flex-col">
+                 <div class="flex items-center justify-between gap-4 mb-6">
+                    <div class="flex items-center gap-3">
+                       <div class="h-10 w-10 rounded-2xl bg-orange-50 text-orange-500 flex items-center justify-center">
+                         <MapPin class="h-6 w-6" />
+                       </div>
+                       <h2 class="text-xs font-black text-gray-400 uppercase tracking-widest">HQ Location</h2>
+                    </div>
+                    <a 
                       v-if="mapsLinkForCampus(mainCampus)"
-                      class="mt-2 inline-flex items-center gap-2 text-sm text-brand-dark hover:underline"
-                      :href="mapsLinkForCampus(mainCampus)"
+                      :href="mapsLinkForCampus(mainCampus)" 
                       target="_blank"
-                      rel="noopener noreferrer"
-                      title="Open in Google Maps"
-                      aria-label="Open in Google Maps"
+                      class="h-8 px-4 rounded-xl bg-slate-50 text-slate-500 text-[9px] font-black uppercase tracking-widest flex items-center gap-1.5 hover:bg-slate-100 transition-colors"
                     >
-                      <MapPin class="h-4 w-4" />
-                      <span>Open in Google Maps</span>
+                      <ArrowRight class="h-3 w-3" /> Maps
                     </a>
-                  </div>
-                </div>
+                 </div>
 
-                <div v-if="embeddedMapUrl" class="mt-3 overflow-hidden rounded-lg border">
-                  <iframe
-                    :src="embeddedMapUrl"
-                    class="w-full h-56"
-                    loading="lazy"
-                    referrerpolicy="no-referrer-when-downgrade"
-                    title="Main campus map"
-                  />
-                </div>
+                 <p class="text-sm font-black text-gray-900 mb-4">{{ campusLabel(mainCampus) }}</p>
+
+                 <div v-if="embeddedMapUrl" class="mt-auto overflow-hidden rounded-3xl border-2 border-white shadow-xl shadow-slate-200/40 aspect-video lg:aspect-square xl:aspect-video">
+                    <iframe
+                      :src="embeddedMapUrl"
+                      class="w-full h-full grayscale-[0.5] contrast-[1.1]"
+                      loading="lazy"
+                      referrerpolicy="no-referrer-when-downgrade"
+                      title="Main campus map"
+                    />
+                 </div>
+              </section>
+           </div>
+
+           <!-- Programs Catalog -->
+           <section class="glass-card p-6 sm:p-8">
+              <div class="flex items-center justify-between gap-4 mb-8">
+                 <div class="flex items-center gap-3">
+                    <div class="h-10 w-10 rounded-2xl bg-emerald-50 text-emerald-500 flex items-center justify-center">
+                      <GraduationCap class="h-6 w-6" />
+                    </div>
+                    <h2 class="text-xs font-black text-gray-400 uppercase tracking-widest">Available Programs</h2>
+                 </div>
+                 <span class="px-3 py-1 rounded-full bg-slate-50 text-slate-400 text-[10px] font-black uppercase tracking-widest">
+                   {{ (inst.programs || []).length }} listings
+                 </span>
               </div>
-            </div>
 
-            <div v-if="branchCampuses.length" class="mt-4">
-              <div class="text-sm font-medium text-gray-900">Branch campuses</div>
-              <div class="mt-2 space-y-2">
-                <div v-for="(c, idx) in branchCampuses" :key="`${c.campus || ''}:${idx}`" class="border rounded-lg p-3 bg-white/60">
-                  <div class="flex items-start justify-between gap-3">
-                    <div class="text-sm text-gray-900">{{ campusLabel(c) }}</div>
-                    <a
-                      v-if="mapsLinkForCampus(c)"
-                      class="inline-flex items-center gap-2 text-sm text-brand-dark hover:underline shrink-0"
-                      :href="mapsLinkForCampus(c)"
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      title="Open in Google Maps"
-                      aria-label="Open in Google Maps"
-                    >
-                      <MapPin class="h-4 w-4" />
-                      <span class="hidden sm:inline">Maps</span>
-                      <span class="sr-only sm:hidden">Maps</span>
+              <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                 <router-link
+                   v-for="p in inst.programs"
+                   :key="p.id"
+                   class="p-5 rounded-3xl bg-white/40 border border-white hover:border-brand hover:shadow-premium transition-all group"
+                   :to="{ name: 'program_details', params: { id: p.id } }"
+                 >
+                   <div class="flex items-start justify-between mb-3">
+                      <span class="px-2 py-0.5 rounded-lg bg-emerald-50 text-emerald-600 text-[8px] font-black uppercase tracking-widest group-hover:bg-emerald-500 group-hover:text-white transition-colors">Match found</span>
+                      <ArrowRight class="h-4 w-4 text-slate-200 group-hover:text-brand transition-colors" />
+                   </div>
+                   <h4 class="text-sm font-black text-gray-900 group-hover:text-brand transition-colors leading-tight mb-2">{{ programLabel(p) }}</h4>
+                   <p class="text-[10px] font-bold text-gray-400 uppercase tracking-widest">{{ p.field_name || 'General Field' }}</p>
+                 </router-link>
+              </div>
+           </section>
+        </div>
+
+        <!-- Sidebar Branching -->
+        <aside class="space-y-8">
+           <!-- Branch Campuses -->
+           <div v-if="branchCampuses.length" class="glass-card-premium p-6 sm:p-8">
+              <div class="flex items-center gap-3 mb-6">
+                 <div class="h-10 w-10 rounded-2xl bg-indigo-50 text-indigo-500 flex items-center justify-center">
+                   <Layers class="h-6 w-6" />
+                 </div>
+                 <h2 class="text-xs font-black text-gray-400 uppercase tracking-widest">Other Locations</h2>
+              </div>
+              
+              <div class="space-y-3">
+                 <div 
+                   v-for="c in branchCampuses" 
+                   :key="c.campus" 
+                   class="flex items-center justify-between p-4 rounded-2xl bg-white/40 border border-white"
+                 >
+                    <div class="min-w-0">
+                       <p class="text-xs font-black text-gray-900 truncate">{{ c.campus }}</p>
+                       <p class="text-[8px] font-black text-gray-400 uppercase tracking-widest truncate">{{ c.town || c.county }}</p>
+                    </div>
+                    <a v-if="mapsLinkForCampus(c)" :href="mapsLinkForCampus(c)" target="_blank" class="h-8 w-8 rounded-xl bg-slate-50 flex items-center justify-center text-slate-400 hover:text-orange-500 transition-colors">
+                       <MapPin class="h-4 w-4" />
                     </a>
-                  </div>
-                </div>
+                 </div>
               </div>
-            </div>
+           </div>
 
-            <p v-if="!campuses.length" class="mt-2 text-sm text-gray-600">No campus location data available yet.</p>
-          </div>
-        </div>
-
-        <div class="card p-4">
-          <div class="flex items-center justify-between gap-4">
-            <h2 class="text-lg font-semibold text-gray-900">Programs</h2>
-            <div class="text-xs text-gray-500">
-              Showing {{ (inst.programs || []).length }} of {{ inst.programs_count ?? (inst.programs?.length || 0) }}
-            </div>
-          </div>
-
-          <div v-if="inst.programs && inst.programs.length" class="mt-3 space-y-2">
-            <router-link
-              v-for="p in inst.programs"
-              :key="p.id"
-              class="block border rounded-lg p-3 bg-white/60 hover:bg-white transition"
-              :to="{ name: 'program_details', params: { id: p.id } }"
-            >
-              <div class="flex items-start justify-between gap-3">
-                <div>
-                  <div class="text-sm font-medium text-gray-900">{{ programLabel(p) }}</div>
-                  <div class="text-xs text-gray-600 mt-1">
-                    <span v-if="p.field_name">{{ p.field_name }}</span>
-                    <span v-if="p.field_name && (p.campus || p.region)"> · </span>
-                    <span v-if="p.campus">{{ p.campus }}</span>
-                    <span v-if="p.campus && p.region"> · </span>
-                    <span v-if="p.region">{{ p.region }}</span>
-                  </div>
-                </div>
-                <div class="shrink-0 text-gray-400">
-                  <GraduationCap class="h-4 w-4" />
-                </div>
+           <!-- Historical Context -->
+           <div v-if="inst.alias" class="glass-card-premium p-6 sm:p-8 bg-indigo-900/[0.02]">
+              <div class="flex items-center gap-3 mb-6">
+                 <div class="h-10 w-10 rounded-2xl bg-indigo-50 text-indigo-500 flex items-center justify-center">
+                   <History class="h-6 w-6" />
+                 </div>
+                 <h2 class="text-xs font-black text-gray-400 uppercase tracking-widest">Brand Alias</h2>
               </div>
-            </router-link>
-          </div>
-          <p v-else class="mt-2 text-sm text-gray-600">No programs found for this institution.</p>
-        </div>
-      </section>
+              <p class="text-lg font-black text-indigo-900/60 lowercase tracking-tighter">{{ inst.alias }}</p>
+           </div>
 
-      <aside v-if="hasAside" class="space-y-6">
-        <div class="card p-4">
-          <h2 class="text-lg font-semibold text-gray-900">Additional details</h2>
-          <pre class="mt-3 text-xs text-gray-700 whitespace-pre-wrap break-words">{{ inst.metadata }}</pre>
-        </div>
-      </aside>
+           <!-- Meta Info -->
+           <div v-if="hasAside" class="glass-card-premium p-6 sm:p-8">
+              <h2 class="text-xs font-black text-gray-400 uppercase tracking-widest mb-4">Metadata Analysis</h2>
+              <div class="p-4 rounded-2xl bg-slate-900 text-[10px] font-mono text-emerald-400/80 leading-relaxed overflow-x-auto">
+                 {{ inst.metadata }}
+              </div>
+           </div>
+        </aside>
+      </div>
     </div>
   </main>
 </template>
+
+<style scoped>
+.glass-card-premium {
+  @apply bg-white/70 backdrop-blur-2xl border-2 border-white rounded-[2rem] shadow-xl shadow-slate-200/50;
+}
+</style>

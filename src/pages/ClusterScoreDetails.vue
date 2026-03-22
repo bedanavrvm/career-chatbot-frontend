@@ -1,7 +1,18 @@
 <script setup>
 import { ref, onMounted, computed } from 'vue'
 import { useRouter } from 'vue-router'
-import { ArrowLeft } from 'lucide-vue-next'
+import { 
+  ArrowLeft, 
+  Target, 
+  Award, 
+  Sigma, 
+  HelpCircle,
+  Zap,
+  CheckCircle2,
+  AlertCircle,
+  FileText,
+  MousePointer2
+} from 'lucide-vue-next'
 import { onboardingDashboard } from '../lib/api'
 import { useAuth } from '../lib/useAuth'
 import { useApiCall } from '../utils/useApiCall'
@@ -25,7 +36,7 @@ async function load() {
     }
     const token = await getIdToken(true)
     return onboardingDashboard(token)
-  }, { fallbackMessage: 'Failed to load cluster score details' })
+  }, { fallbackMessage: 'Failed to load scores' })
   if (!data) return
   kcse.value = data?.kcse || kcse.value
 }
@@ -45,130 +56,193 @@ const sortedSubjects = computed(() => {
 const top4Set = computed(() => new Set((kcse.value?.top4_subjects || []).map(s => String(s || '').toUpperCase())))
 const top7Set = computed(() => new Set((kcse.value?.top7_subjects || []).map(s => String(s || '').toUpperCase())))
 
-function back() {
-  if (window.history.length > 1) router.back()
-  else router.push('/dashboard')
-}
-
 function fmt(v) {
   if (v == null) return '—'
   const n = Number(v)
-  if (Number.isNaN(n)) return String(v)
-  return String(n)
+  return Number.isNaN(n) ? String(v) : String(n)
 }
 </script>
 
 <template>
-  <main class="container-page px-4 py-6">
-    <div class="flex items-start justify-between gap-4">
-      <div>
-        <h1 class="text-2xl font-bold">KCSE Weighted Score (Generic)</h1>
-        <p class="text-sm text-gray-600 mt-1">A generic KCSE strength metric based on your best subjects (not per-program KUCCPS cluster points).</p>
+  <main class="min-h-screen bg-slate-100/60 pb-20">
+    <!-- Header -->
+    <header class="bg-white/80 backdrop-blur-xl border-b border-white sticky top-0 z-30 px-4 py-4 sm:px-6">
+      <div class="max-w-7xl mx-auto flex items-center justify-between gap-4">
+        <div class="flex items-center gap-4">
+          <button 
+            @click="router.back()" 
+            class="h-10 w-10 rounded-2xl bg-white border border-slate-200 flex items-center justify-center text-gray-500 hover:text-brand hover:border-brand transition-all shadow-sm group"
+          >
+            <ArrowLeft class="h-5 w-5 group-hover:-translate-x-0.5 transition-transform" />
+          </button>
+          <div>
+            <h1 class="text-xl font-black text-gray-900 leading-tight">Academic Profile</h1>
+            <p class="text-[10px] font-bold text-gray-500 uppercase tracking-widest mt-0.5">KCSE weighted performance</p>
+          </div>
+        </div>
+        <div v-if="kcse.cluster_score" class="h-10 px-4 rounded-2xl bg-brand font-black text-white text-[10px] uppercase tracking-widest flex items-center gap-2 shadow-lg shadow-brand/20">
+           <Zap class="h-4 w-4" />
+           Agg. Score: {{ fmt(kcse.cluster_score) }}
+        </div>
       </div>
-      <button
-        class="btn btn-outline btn-md"
-        type="button"
-        title="Back"
-        aria-label="Back"
-        @click="back"
-      >
-        <ArrowLeft class="h-4 w-4" />
-        <span class="sr-only">Back</span>
-      </button>
-    </div>
+    </header>
 
-    <p v-if="error" class="mt-3 text-sm text-red-600">{{ error }}</p>
-    <div v-else-if="loading" class="mt-6 space-y-6 animate-pulse">
-      <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
-        <div v-for="i in 3" :key="i" class="card p-4">
-          <div class="h-4 bg-gray-200 rounded w-32"></div>
-          <div class="mt-3 h-8 bg-gray-100 rounded w-24"></div>
-          <div class="mt-3 h-3 bg-gray-100 rounded w-2/3"></div>
-        </div>
-      </div>
-      <div class="card p-4">
-        <div class="h-5 bg-gray-200 rounded w-28"></div>
-        <div class="mt-3 h-16 bg-gray-100 rounded"></div>
-      </div>
-      <div class="card p-4">
-        <div class="h-5 bg-gray-200 rounded w-28"></div>
-        <div class="mt-4 h-56 bg-gray-100 rounded"></div>
-      </div>
-    </div>
-
-    <div v-else class="mt-6 space-y-6">
-      <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
-        <div class="card p-4">
-          <div class="text-sm text-gray-600">KCSE weighted score</div>
-          <div class="mt-2 text-3xl font-bold text-gray-900">{{ fmt(kcse.cluster_score) }}</div>
-          <div class="mt-2 text-xs text-gray-500" v-if="kcse.has_grades">Based on {{ kcse.subjects_provided }} subject grades</div>
-          <div class="mt-2 text-xs text-gray-500" v-else>Complete your KCSE grades to compute this</div>
-        </div>
-        <div class="card p-4">
-          <div class="text-sm text-gray-600">Top 4 points (R)</div>
-          <div class="mt-2 text-3xl font-bold text-gray-900">{{ fmt(kcse.top4_points) }}</div>
-          <div class="mt-2 text-xs text-gray-500">Sum of your 4 highest subjects</div>
-        </div>
-        <div class="card p-4">
-          <div class="text-sm text-gray-600">Top 7 points (T)</div>
-          <div class="mt-2 text-3xl font-bold text-gray-900">{{ fmt(kcse.top7_points) }}</div>
-          <div class="mt-2 text-xs text-gray-500">Sum of your 7 highest subjects</div>
-        </div>
+    <div class="max-w-7xl mx-auto px-4 py-8 sm:px-6">
+      <div v-if="loading" class="space-y-8 animate-pulse">
+         <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+            <div v-for="i in 3" :key="i" class="h-40 bg-white/40 rounded-3xl border border-white"></div>
+         </div>
+         <div class="h-96 bg-white/40 rounded-3xl border border-white"></div>
       </div>
 
-      <div class="card p-4">
-        <h2 class="text-lg font-semibold">Formula used</h2>
-        <div class="mt-2 text-sm text-gray-700" v-if="kcse.formula">
-          Cluster = sqrt((R / {{ kcse.formula.R }}) × (T / {{ kcse.formula.T }})) × 48
-        </div>
-        <div class="mt-2 text-xs text-gray-600" v-if="kcse.formula">
-          Where R is your top-4 points sum, and T is your top-7 points sum.
-        </div>
-        <div v-else class="mt-2 text-sm text-gray-600">No formula details available.</div>
-      </div>
+      <div v-else class="space-y-8">
+        <!-- Top Stats -->
+        <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+          <div class="glass-card-premium p-6 border-brand/10 bg-brand/[0.02]">
+            <div class="flex items-center justify-between mb-4">
+               <div class="h-10 w-10 rounded-2xl bg-brand/10 text-brand flex items-center justify-center">
+                 <Target class="h-6 w-6" />
+               </div>
+               <span class="text-[10px] font-black text-gray-400 uppercase tracking-widest">Weighted Strength</span>
+            </div>
+            <p class="text-4xl font-black text-gray-900 tracking-tighter">{{ fmt(kcse.cluster_score) }}</p>
+            <div class="mt-4 flex items-center gap-2 text-[10px] font-black uppercase tracking-widest text-gray-500">
+               <CheckCircle2 v-if="kcse.has_grades" class="h-3 w-3 text-emerald-500" />
+               <AlertCircle v-else class="h-3 w-3 text-orange-500" />
+               {{ kcse.has_grades ? `${kcse.subjects_provided} Subjects Indexed` : 'Grades Required' }}
+            </div>
+          </div>
 
-      <div class="card p-4">
-        <h2 class="text-lg font-semibold">Your subjects</h2>
-        <p class="text-sm text-gray-600 mt-1">Highlighted: Top 4 (strong highlight) and Top 7 (light highlight).</p>
+          <div class="glass-card-premium p-6">
+            <div class="flex items-center justify-between mb-4">
+               <div class="h-10 w-10 rounded-2xl bg-emerald-50 text-emerald-500 flex items-center justify-center">
+                 <Award class="h-6 w-6" />
+               </div>
+               <span class="text-[10px] font-black text-gray-400 uppercase tracking-widest">Top 4 Points</span>
+            </div>
+            <p class="text-4xl font-black text-gray-900 tracking-tighter">{{ fmt(kcse.top4_points) }}</p>
+            <p class="mt-4 text-[10px] font-black uppercase tracking-widest text-gray-400">Primary Cluster Core (R)</p>
+          </div>
 
-        <div v-if="sortedSubjects.length" class="mt-3 overflow-x-auto">
-          <table class="min-w-full text-sm">
-            <thead>
-              <tr class="text-left text-gray-500 border-b">
-                <th class="py-2 pr-4">Subject</th>
-                <th class="py-2 pr-4">Grade</th>
-                <th class="py-2 pr-4">Points</th>
-                <th class="py-2">Used in</th>
-              </tr>
-            </thead>
-            <tbody>
-              <tr
-                v-for="(s, idx) in sortedSubjects"
-                :key="idx"
-                :class="[
-                  'border-b last:border-b-0',
-                  top4Set.has(String(s.subject_code || '').toUpperCase()) ? 'bg-brand/10' : (top7Set.has(String(s.subject_code || '').toUpperCase()) ? 'bg-brand/5' : '')
-                ]"
-              >
-                <td 
-                  class="py-2 pr-4 font-mono cursor-help" 
-                  :title="_KCSE_SUBJECT_BY_CODE[s.subject_code]?.name || s.subject_code"
-                >
-                  {{ s.subject_code }}
-                </td>
-                <td class="py-2 pr-4">{{ s.grade || '—' }}</td>
-                <td class="py-2 pr-4">{{ fmt(s.points) }}</td>
-                <td class="py-2">
-                  <span v-if="top4Set.has(String(s.subject_code || '').toUpperCase())" class="text-xs font-medium text-gray-900">Top 4</span>
-                  <span v-else-if="top7Set.has(String(s.subject_code || '').toUpperCase())" class="text-xs font-medium text-gray-700">Top 7</span>
-                  <span v-else class="text-xs text-gray-500">Not used</span>
-                </td>
-              </tr>
-            </tbody>
-          </table>
+          <div class="glass-card-premium p-6">
+            <div class="flex items-center justify-between mb-4">
+               <div class="h-10 w-10 rounded-2xl bg-indigo-50 text-indigo-500 flex items-center justify-center">
+                 <Sigma class="h-6 w-6" />
+               </div>
+               <span class="text-[10px] font-black text-gray-400 uppercase tracking-widest">Top 7 Points</span>
+            </div>
+            <p class="text-4xl font-black text-gray-900 tracking-tighter">{{ fmt(kcse.top7_points) }}</p>
+            <p class="mt-4 text-[10px] font-black uppercase tracking-widest text-gray-400">Aggregate Breadth (T)</p>
+          </div>
         </div>
-        <div v-else class="mt-2 text-sm text-gray-600">No subjects available.</div>
+
+        <!-- Formula Section -->
+        <section class="glass-card-premium p-6 sm:p-8 overflow-hidden relative">
+           <div class="absolute top-0 right-0 h-48 w-48 bg-brand/5 blur-3xl -mr-24 -mt-24 rounded-full"></div>
+           <div class="flex items-center gap-3 mb-6">
+              <div class="h-10 w-10 rounded-2xl bg-brand/10 text-brand flex items-center justify-center">
+                <HelpCircle class="h-6 w-6" />
+              </div>
+              <h2 class="text-xs font-black text-gray-400 uppercase tracking-widest">Algorithm Used</h2>
+           </div>
+           
+           <div v-if="kcse.formula" class="flex flex-col md:flex-row items-center gap-8">
+              <div class="p-6 rounded-3xl bg-gray-900 text-white font-mono text-lg shadow-2xl shadow-slate-200">
+                 Score = √((R / {{ kcse.formula.R }}) × (T / {{ kcse.formula.T }})) × 48
+              </div>
+              <div class="max-w-md space-y-2">
+                 <p class="text-sm font-bold text-gray-600 leading-relaxed">
+                   This is the standardized KUCCPS cluster calculation formula. 
+                   <span class="text-brand">R</span> represents your top 4 subjects, 
+                   and <span class="text-indigo-500">T</span> represents your top 7 subjects.
+                 </p>
+              </div>
+           </div>
+           <p v-else class="text-sm font-bold text-gray-400 text-center py-4 bg-slate-50 rounded-2xl">Formula schema pending data.</p>
+        </section>
+
+        <!-- Subjects Table -->
+        <section class="glass-card-premium p-6 sm:p-8">
+           <div class="flex items-center justify-between gap-4 mb-8">
+              <div class="flex items-center gap-3">
+                 <div class="h-10 w-10 rounded-2xl bg-brand/10 text-brand flex items-center justify-center">
+                   <FileText class="h-6 w-6" />
+                 </div>
+                 <h2 class="text-xs font-black text-gray-400 uppercase tracking-widest">Grades Matrix</h2>
+              </div>
+              <div class="flex items-center gap-4">
+                 <div class="flex items-center gap-2">
+                    <div class="h-3 w-3 rounded bg-brand shadow-sm"></div>
+                    <span class="text-[10px] font-black text-gray-400 uppercase tracking-widest">Core 4</span>
+                 </div>
+                 <div class="flex items-center gap-2">
+                    <div class="h-3 w-3 rounded bg-brand/30 shadow-sm border border-brand/50"></div>
+                    <span class="text-[10px] font-black text-gray-400 uppercase tracking-widest">Breadth 7</span>
+                 </div>
+              </div>
+           </div>
+
+           <div v-if="sortedSubjects.length" class="overflow-hidden rounded-3xl border border-slate-100">
+             <table class="min-w-full divide-y divide-slate-100">
+               <thead class="bg-slate-50/50">
+                 <tr>
+                   <th class="px-6 py-4 text-left text-[10px] font-black text-gray-400 uppercase tracking-widest">Subject</th>
+                   <th class="px-6 py-4 text-left text-[10px] font-black text-gray-400 uppercase tracking-widest">Grade</th>
+                   <th class="px-6 py-4 text-left text-[10px] font-black text-gray-400 uppercase tracking-widest">Points</th>
+                   <th class="px-6 py-4 text-right text-[10px] font-black text-gray-400 uppercase tracking-widest">Impact</th>
+                 </tr>
+               </thead>
+               <tbody class="divide-y divide-slate-100 bg-white/20 backdrop-blur-sm">
+                 <tr
+                   v-for="(s, idx) in sortedSubjects"
+                   :key="idx"
+                   class="group transition-colors"
+                   :class="[
+                     top4Set.has(String(s.subject_code).toUpperCase()) ? 'bg-brand/[0.04]' : (top7Set.has(String(s.subject_code).toUpperCase()) ? 'bg-brand/[0.02]' : '')
+                   ]"
+                 >
+                   <td class="px-6 py-5 whitespace-nowrap">
+                      <div class="flex items-center gap-3">
+                         <div :class="['h-2 w-2 rounded-full', top4Set.has(String(s.subject_code).toUpperCase()) ? 'bg-brand' : (top7Set.has(String(s.subject_code).toUpperCase()) ? 'bg-brand/40' : 'bg-slate-200')]"></div>
+                         <div class="flex flex-col">
+                            <span class="text-sm font-black text-gray-900 font-mono">{{ s.subject_code }}</span>
+                            <span class="text-[10px] font-bold text-gray-400 truncate max-w-[100px]">{{ _KCSE_SUBJECT_BY_CODE[s.subject_code]?.name || 'Elective Subject' }}</span>
+                         </div>
+                      </div>
+                   </td>
+                   <td class="px-6 py-5">
+                      <span class="px-3 py-1 rounded-lg bg-gray-900 text-white text-[10px] font-black uppercase tracking-widest shadow-sm">
+                         {{ s.grade || '—' }}
+                      </span>
+                   </td>
+                   <td class="px-6 py-5">
+                      <span class="text-sm font-black text-gray-900">{{ fmt(s.points) }}</span>
+                   </td>
+                   <td class="px-6 py-5 text-right">
+                      <span v-if="top4Set.has(String(s.subject_code).toUpperCase())" class="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-brand text-white text-[9px] font-black uppercase tracking-widest shadow-lg shadow-brand/20">
+                         <Zap class="h-3 w-3" />
+                         CORE 4
+                      </span>
+                      <span v-else-if="top7Set.has(String(s.subject_code).toUpperCase())" class="inline-flex items-center px-3 py-1 rounded-full bg-slate-100 text-slate-500 text-[9px] font-black uppercase tracking-widest">
+                         BREADTH 7
+                      </span>
+                   </td>
+                 </tr>
+               </tbody>
+             </table>
+           </div>
+           <div v-else class="text-center py-12 bg-slate-50 rounded-3xl border-2 border-dashed border-slate-100">
+              <MousePointer2 class="h-8 w-8 text-slate-300 mx-auto mb-4" />
+              <p class="text-sm font-bold text-gray-400">Index your KCSE grades to populate this table.</p>
+           </div>
+        </section>
       </div>
     </div>
   </main>
 </template>
+
+<style scoped>
+.glass-card-premium {
+  @apply bg-white/70 backdrop-blur-2xl border-2 border-white rounded-[2rem] shadow-xl shadow-slate-200/50;
+}
+</style>
