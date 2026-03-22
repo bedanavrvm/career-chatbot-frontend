@@ -10,6 +10,7 @@
     --radius-xl: 1.25rem;
     --shadow-soft: 0 4px 12px rgba(15, 23, 42, 0.06);
     --shadow-elevated: 0 10px 25px rgba(15, 23, 42, 0.12);
+    --shadow-premium: 0 20px 40px -12px rgba(15, 23, 42, 0.15);
   }
 }
 
@@ -28,6 +29,18 @@
   .btn-sm { @apply px-3 py-2 text-sm rounded-lg; }
 
   .clickable-card { @apply cursor-pointer transition-all hover:bg-white/70 hover:shadow-md hover:-translate-y-0.5 active:translate-y-0 focus:outline-none focus:ring-2 focus:ring-brand/30; }
+  .glass-card { @apply bg-white/60 backdrop-blur-md border border-white/40 shadow-sm rounded-2xl; }
+  
+  .stat-card { @apply card p-5 flex flex-col gap-1 relative overflow-hidden transition-all hover:shadow-xl hover:-translate-y-1; }
+  .stat-icon-bg { @apply absolute -right-4 -bottom-4 h-24 w-24 opacity-[0.03] rotate-12; }
+  .stat-icon-soft { @apply flex items-center justify-center h-10 w-10 rounded-xl mb-3; }
+
+  .action-card { @apply flex flex-col items-start gap-4 p-6 rounded-2xl bg-white border border-gray-100 shadow-sm transition-all hover:shadow-premium hover:border-brand/20 hover:-translate-y-1 group; }
+  .action-icon-soft { @apply flex items-center justify-center h-12 w-12 rounded-2xl bg-brand/5 text-brand group-hover:bg-brand group-hover:text-white transition-colors shadow-inner; }
+
+  .riasec-bar-container { @apply w-full h-2.5 bg-gray-100 rounded-full overflow-hidden; }
+  .riasec-bar-fill { @apply h-full rounded-full transition-all duration-700 ease-out; }
+
   .chip-btn { @apply inline-flex items-center rounded-full border border-gray-200 bg-white px-3 py-1 text-sm transition-all hover:bg-gray-50 hover:shadow-sm active:scale-95 focus:outline-none focus:ring-2 focus:ring-brand/20; }
 
   .input { @apply block w-full rounded-xl border-2 border-gray-300 bg-white px-3 py-2.5 text-sm text-gray-900 placeholder:text-gray-400 shadow-inner focus:outline-none focus:border-brand focus:ring-4 focus:ring-brand/20 transition; }

@@ -68,6 +68,18 @@ const isGraduate = computed(() => {
   return profile.value?.education_level === 'college_graduate' || profile.value?.education_level === 'college_student'
 })
 
+const getRiasecColor = (type) => {
+  const colors = {
+    Realistic: 'bg-red-500',
+    Investigative: 'bg-blue-500',
+    Artistic: 'bg-purple-500',
+    Social: 'bg-teal-500',
+    Enterprising: 'bg-orange-500',
+    Conventional: 'bg-indigo-500'
+  }
+  return colors[type] || 'bg-brand'
+}
+
 const clusterScoreLabel = computed(() => {
   const v = kcse.value?.cluster_score
   if (v == null || Number.isNaN(Number(v))) return '—'
@@ -106,36 +118,38 @@ function openRiasecDetails () {
 </script>
 
 <template>
-  <main class="container-page px-4 py-6">
-    <div class="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-4">
+  <main class="flex-1 overflow-y-auto p-4 sm:p-6 lg:p-8 bg-[#f8fafc]/50 relative">
+    <!-- background decor -->
+    <div class="absolute top-0 right-0 -z-10 w-1/3 h-1/3 bg-brand/5 blur-[120px] rounded-full"></div>
+    <div class="absolute bottom-10 left-10 -z-10 w-1/4 h-1/4 bg-brand/5 blur-[100px] rounded-full"></div>
+
+    <header class="flex flex-col md:flex-row md:items-center justify-between gap-6">
       <div>
-        <h1 class="text-2xl font-bold">Dashboard</h1>
-        <p class="text-gray-600">Welcome, <span class="font-medium text-gray-900">{{ displayName }}</span></p>
+        <h1 class="text-3xl font-black text-gray-900 tracking-tight sm:text-4xl">Dashboard</h1>
+        <p class="text-gray-500 mt-1 flex items-center gap-2">
+          Welcome back, <span class="text-brand font-bold">{{ displayName }}</span>
+          <span class="inline-flex h-2 w-2 rounded-full bg-green-500 animate-pulse"></span>
+        </p>
       </div>
 
-      <div class="flex flex-wrap gap-2">
+      <div class="flex items-center gap-3">
         <router-link
           to="/chat"
-          class="btn btn-primary btn-md gap-2"
-          title="Go to chat"
-          aria-label="Go to chat"
+          class="btn-primary btn-md shadow-xl shadow-brand/20 gap-2 px-6"
         >
           <MessageSquare class="h-4 w-4" />
-          <span>Chat</span>
+          <span>Quick Chat</span>
         </router-link>
 
         <router-link
           to="/settings/profile"
-          class="btn btn-outline btn-md gap-2"
-          title="Update profile"
-          aria-label="Update profile"
+          class="btn-outline btn-md gap-2 border-gray-200 bg-white/80 backdrop-blur-sm"
         >
           <UserRoundCog class="h-4 w-4" />
-          <span class="hidden sm:inline">Update Profile</span>
-          <span class="sr-only sm:hidden">Update Profile</span>
+          <span class="hidden sm:inline">Settings</span>
         </router-link>
       </div>
-    </div>
+    </header>
 
     <p v-if="error" class="mt-3 text-sm text-red-600">{{ error }}</p>
 
@@ -163,129 +177,132 @@ function openRiasecDetails () {
       </section>
     </div>
 
-    <section v-else class="mt-6 grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-          <div
-            v-if="isHighSchool"
-            class="card p-4 clickable-card"
-            role="button"
-            tabindex="0"
-            @click="openClusterScoreDetails"
-            @keydown.enter="openClusterScoreDetails"
-          >
-            <div class="flex items-center gap-2 text-sm text-gray-600" title="KCSE Weighted Score (Generic)">
-              <Gauge class="h-4 w-4" />
-              <span>KCSE Weighted Score (Generic)</span>
-            </div>
-            <div class="mt-2 text-3xl font-bold text-gray-900">{{ clusterScoreLabel }}</div>
-            <div class="mt-2 text-xs text-gray-500" v-if="kcse?.has_grades">Based on {{ kcse.subjects_provided }} subject grades</div>
-            <div class="mt-2 text-xs text-gray-500" v-else>Complete your KCSE grades to compute this</div>
-          </div>
+    <section v-else class="mt-8 grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+      <!-- KCSE Score -->
+      <div
+        v-if="isHighSchool"
+        class="stat-card glass-card group clickable-card"
+        @click="openClusterScoreDetails"
+      >
+        <div class="stat-icon-soft bg-brand/10 text-brand group-hover:bg-brand group-hover:text-white transition-all duration-300">
+          <Gauge class="h-5 w-5" />
+        </div>
+        <Gauge class="stat-icon-bg text-brand" />
+        <span class="text-[10px] font-black text-gray-400 uppercase tracking-[0.1em]">Weighted Score</span>
+        <div class="text-3xl font-black text-gray-900 mt-1 leading-none">{{ clusterScoreLabel }}</div>
+        <div class="mt-2 text-[10px] text-gray-500 flex items-center gap-1">
+          <ListChecks class="h-3 w-3" />
+          {{ kcse?.has_grades ? `${kcse.subjects_provided} subjects graded` : 'Grades needed' }}
+        </div>
+      </div>
 
-          <div
-            v-else
-            class="card p-4 bg-gradient-to-br from-brand/5 to-transparent border-brand/20 shadow-sm"
-          >
-            <div class="flex items-center gap-2 text-sm text-brand font-medium" title="Career Trajectory">
-              <TrendingUp class="h-4 w-4" />
-              <span>Career Trajectory</span>
-            </div>
-            <div class="mt-2 text-lg font-semibold text-gray-900">Career-First Mode</div>
-            <div class="mt-2 text-xs text-gray-600">Focused on professional paths and occupations aligned to your diploma/degree.</div>
-          </div>
+      <!-- Career Trajectory (Grad Only) -->
+      <div
+        v-else
+        class="stat-card glass-card group bg-indigo-50/30 overflow-hidden"
+      >
+        <div class="stat-icon-soft bg-indigo-100 text-indigo-600">
+          <TrendingUp class="h-5 w-5" />
+        </div>
+        <TrendingUp class="stat-icon-bg text-indigo-600" />
+        <span class="text-[10px] font-black text-indigo-400 uppercase tracking-[0.1em]">Focus</span>
+        <div class="text-2xl font-black text-gray-900 mt-1">Career-First</div>
+        <div class="mt-2 text-[10px] text-indigo-600 font-medium">Postgraduate & Pros</div>
+      </div>
 
-          <div
-            class="card p-4 clickable-card"
-            role="button"
-            tabindex="0"
-            @click="openRiasecDetails"
-            @keydown.enter="openRiasecDetails"
-          >
-            <div class="flex items-center gap-2 text-sm text-gray-600" title="Top RIASEC">
-              <Brain class="h-4 w-4" />
-              <span>Top RIASEC</span>
-            </div>
-            <div class="mt-2 text-xl font-semibold text-gray-900">{{ (riasec.top || []).join(' · ') || '—' }}</div>
-            <div class="mt-2 text-xs text-gray-500">{{ riasec.narrative || '' }}</div>
-          </div>
+      <!-- RIASEC -->
+      <div class="stat-card glass-card group clickable-card" @click="openRiasecDetails">
+        <div class="stat-icon-soft bg-purple-100 text-purple-600 group-hover:bg-purple-600 group-hover:text-white transition-all duration-300">
+          <Brain class="h-5 w-5" />
+        </div>
+        <Brain class="stat-icon-bg text-purple-600" />
+        <span class="text-[10px] font-black text-gray-400 uppercase tracking-[0.1em]">Top Interest</span>
+        <div class="text-xl font-bold text-gray-900 mt-1 truncate">
+          {{ (riasec.top || [])[0] || 'Analyzing...' }}
+        </div>
+        <div class="mt-2 text-[10px] text-gray-500 truncate">
+          {{ (riasec.top || []).slice(1, 3).join(' · ') || 'Take assessment' }}
+        </div>
+      </div>
 
-          <div class="card p-4">
-            <div class="flex items-center gap-2 text-sm text-gray-600" title="Education Level">
-              <GraduationCap class="h-4 w-4" />
-              <span>Education Level</span>
-            </div>
-            <div class="mt-2 text-xl font-semibold text-gray-900">{{ educationLabel }}</div>
-          </div>
+      <!-- Education -->
+      <div class="stat-card glass-card group">
+        <div class="stat-icon-soft bg-blue-100 text-blue-600">
+          <GraduationCap class="h-5 w-5" />
+        </div>
+        <GraduationCap class="stat-icon-bg text-blue-600" />
+        <span class="text-[10px] font-black text-gray-400 uppercase tracking-[0.1em]">Academic Level</span>
+        <div class="text-xl font-bold text-gray-900 mt-1 capitalize truncate">
+          {{ educationLabel.replace('_', ' ') }}
+        </div>
+        <div class="mt-2 text-[10px] text-gray-500 truncate">
+          {{ profile?.universal?.qualification || 'General Education' }}
+        </div>
+      </div>
 
-          <div class="card p-4">
-            <div class="flex items-center gap-2 text-sm text-gray-600" title="Region">
-              <MapPin class="h-4 w-4" />
-              <span>Region</span>
-            </div>
-            <div class="mt-2 text-xl font-semibold text-gray-900">{{ regionLabel }}</div>
-          </div>
+      <!-- Location -->
+      <div class="stat-card glass-card group hover:shadow-orange-100/50">
+        <div class="stat-icon-soft bg-orange-100 text-orange-600">
+          <MapPin class="h-5 w-5" />
+        </div>
+        <MapPin class="stat-icon-bg text-orange-600" />
+        <span class="text-[10px] font-black text-gray-400 uppercase tracking-[0.1em]">Preferred Town</span>
+        <div class="text-xl font-bold text-gray-900 mt-1 truncate">
+          {{ regionLabel }}
+        </div>
+        <div class="mt-2 text-[10px] text-gray-500">Kenya</div>
+      </div>
     </section>
 
-    <section v-if="!loading" class="mt-6 grid grid-cols-1 lg:grid-cols-3 gap-6">
-      <div class="lg:col-span-2 card p-4">
-        <div class="flex items-start justify-between gap-4">
-          <div>
-            <h2 class="text-lg font-semibold">Overview</h2>
-            <p class="text-sm text-gray-600">Quick actions and a snapshot of your profile.</p>
-          </div>
+    <section v-if="!loading" class="mt-12 grid grid-cols-1 lg:grid-cols-3 gap-8">
+      <div class="lg:col-span-2">
+        <div class="flex items-center justify-between mb-6">
+          <h2 class="text-xl font-bold text-gray-900 flex items-center gap-2">
+            <div class="h-8 w-1 bg-brand rounded-full"></div>
+            Quick Launch
+          </h2>
         </div>
 
-        <div class="mt-4 grid grid-cols-1 sm:grid-cols-2 gap-3">
-          <router-link
-            to="/programmes"
-            class="card p-4 hover:shadow-sm transition-shadow"
-            title="Browse programmes"
-            aria-label="Browse programmes"
-          >
-            <div class="flex items-center gap-2 text-sm text-gray-700">
-              <BookOpen class="h-4 w-4" />
-              <span class="font-medium">Browse programmes</span>
+        <div class="grid grid-cols-1 sm:grid-cols-2 gap-6">
+          <router-link to="/programmes" class="action-card">
+            <div class="action-icon-soft">
+              <BookOpen class="h-6 w-6" />
             </div>
-            <div class="mt-2 text-xs text-gray-600">Explore fields, institutions, and requirements.</div>
+            <div>
+              <h3 class="font-bold text-gray-900">Browse Programmes</h3>
+              <p class="text-sm text-gray-500 mt-1 leading-relaxed">Search degrees and check your current course eligibility.</p>
+            </div>
           </router-link>
 
-          <router-link
-            to="/careers"
-            class="card p-4 hover:shadow-sm transition-shadow"
-            title="Career matches"
-            aria-label="Career matches"
-          >
-            <div class="flex items-center gap-2 text-sm text-gray-700">
-              <Search class="h-4 w-4" />
-              <span class="font-medium">Career matches</span>
+          <router-link to="/chat" class="action-card">
+            <div class="action-icon-soft bg-orange-50 text-orange-600 group-hover:bg-orange-600 group-hover:text-white transition-all">
+              <Search class="h-6 w-6" />
             </div>
-            <div class="mt-2 text-xs text-gray-600">See careers aligned to your profile and interests.</div>
+            <div>
+              <h3 class="font-bold text-gray-900">Career Matches</h3>
+              <p class="text-sm text-gray-500 mt-1 leading-relaxed">Explore occupations aligned to your personal interest profile.</p>
+            </div>
           </router-link>
 
-          <router-link
-            to="/dashboard/cluster-score"
-            class="card p-4 hover:shadow-sm transition-shadow"
-            title="Cluster score details"
-            aria-label="Cluster score details"
-          >
-            <div class="flex items-center gap-2 text-sm text-gray-700">
-              <ListChecks class="h-4 w-4" />
-              <span class="font-medium">Cluster score details</span>
+          <div class="action-card clickable-card" @click="openClusterScoreDetails">
+            <div class="action-icon-soft bg-blue-50 text-blue-600 group-hover:bg-blue-600 group-hover:text-white transition-all">
+              <ListChecks class="h-6 w-6" />
             </div>
-            <div class="mt-2 text-xs text-gray-600">See how your weighted score is computed.</div>
-          </router-link>
+            <div>
+              <h3 class="font-bold text-gray-900">Score Metrics</h3>
+              <p class="text-sm text-gray-500 mt-1 leading-relaxed">Detailed breakdown of how your cluster scores are computed.</p>
+            </div>
+          </div>
 
-          <router-link
-            to="/dashboard/riasec"
-            class="card p-4 hover:shadow-sm transition-shadow"
-            title="RIASEC details"
-            aria-label="RIASEC details"
-          >
-            <div class="flex items-center gap-2 text-sm text-gray-700">
-              <Brain class="h-4 w-4" />
-              <span class="font-medium">RIASEC details</span>
+          <div class="action-card clickable-card" @click="openRiasecDetails">
+            <div class="action-icon-soft bg-purple-50 text-purple-600 group-hover:bg-purple-600 group-hover:text-white transition-all">
+              <Brain class="h-6 w-6" />
             </div>
-            <div class="mt-2 text-xs text-gray-600">Understand your top interest areas.</div>
-          </router-link>
+            <div>
+              <h3 class="font-bold text-gray-900">RIASEC Deep Dive</h3>
+              <p class="text-sm text-gray-500 mt-1 leading-relaxed">Understand the core traits that drive your career choices.</p>
+            </div>
+          </div>
         </div>
       </div>
 
@@ -310,18 +327,25 @@ function openRiasecDetails () {
       </div>
     </section>
 
-    <section v-if="!loading" class="mt-6 grid grid-cols-1 lg:grid-cols-3 gap-6">
-      <div class="lg:col-span-2 card p-4">
-        <h2 class="text-lg font-semibold">RIASEC Profile</h2>
-        <p class="text-sm text-gray-600">Top types: <span class="font-medium">{{ (riasec.top || []).join(', ') || '—' }}</span></p>
-        <div class="mt-4 space-y-3">
-          <div v-for="k in keys()" :key="k">
-            <div class="flex items-center justify-between text-sm">
-              <div class="font-medium">{{ k }}</div>
-              <div class="text-gray-500">{{ riasec.scores[k] }}</div>
+      <div class="lg:col-span-2 glass-card p-8 border-none shadow-premium">
+        <h2 class="text-xl font-bold text-gray-900 tracking-tight">RIASEC Interest Profile</h2>
+        <p class="text-sm text-gray-500 mt-1">Numerical breakdown of your core professional drivers.</p>
+        
+        <div class="mt-8 space-y-5">
+          <div v-for="k in keys()" :key="k" class="group/bar">
+            <div class="flex items-center justify-between mb-2">
+              <div class="flex items-center gap-2">
+                <div class="h-2 w-2 rounded-full" :class="getRiasecColor(k)"></div>
+                <span class="text-sm font-bold text-gray-700 group-hover/bar:text-brand transition-colors">{{ k }}</span>
+              </div>
+              <span class="text-sm font-black text-gray-400 group-hover/bar:text-gray-900 transition-colors">{{ riasec.scores[k] }}</span>
             </div>
-            <div class="h-2 bg-gray-100 rounded-full overflow-hidden">
-              <div class="h-2 bg-brand rounded-full" :style="{ width: pct(riasec.scores[k]) + '%' }"></div>
+            <div class="riasec-bar-container bg-gray-50/50">
+              <div 
+                class="riasec-bar-fill shadow-sm"
+                :class="getRiasecColor(k)"
+                :style="{ width: pct(riasec.scores[k]) + '%' }"
+              ></div>
             </div>
           </div>
         </div>
