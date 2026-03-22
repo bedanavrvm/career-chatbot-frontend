@@ -2,6 +2,7 @@
 import { ref, reactive, onMounted, computed } from 'vue'
 import { useRouter } from 'vue-router'
 import { onboardingMe, onboardingSave, formatApiError } from '../lib/api'
+import { AlertCircle, Lock } from 'lucide-vue-next'
 
 import { useAuth } from '../lib/useAuth'
 
@@ -474,94 +475,127 @@ async function submitAll() {
 </script>
 
 <template>
-  <main class="container-page px-4 py-6">
-    <div class="flex items-start justify-between gap-4">
-      <div>
-        <h1 class="text-2xl font-bold">Complete your profile</h1>
-        <p class="text-gray-600">{{ stepTitle }} (Step {{ step }} of 6)</p>
+  <main class="min-h-screen app-bg py-12 px-4 sm:px-6 relative overflow-hidden flex flex-col items-center">
+    <!-- background decor -->
+    <div class="absolute top-0 right-0 -z-10 w-1/3 h-1/3 bg-brand/5 blur-[120px] rounded-full"></div>
+    <div class="absolute bottom-10 left-10 -z-10 w-1/4 h-1/4 bg-brand/5 blur-[100px] rounded-full"></div>
+
+    <!-- Progress Header -->
+    <div class="w-full max-w-2xl mb-8">
+      <div class="flex items-center justify-between mb-4">
+        <div>
+          <h1 class="text-2xl font-black text-gray-900 tracking-tight">Complete your profile</h1>
+          <p class="text-sm text-gray-500 font-medium">Step {{ step }} of 6: {{ stepTitle }}</p>
+        </div>
+        <div v-if="saveLabel" class="flex items-center gap-2 px-3 py-1 rounded-full bg-white/50 border border-white text-[10px] font-black uppercase tracking-widest text-brand animate-pulse">
+          {{ saveLabel }}
+        </div>
       </div>
-      <div v-if="saveLabel" class="text-xs text-gray-600 mt-1">{{ saveLabel }}</div>
+
+      <!-- Step dots -->
+      <div class="flex gap-2">
+        <div 
+          v-for="s in 6" 
+          :key="s" 
+          class="h-1.5 flex-1 rounded-full transition-all duration-500"
+          :class="s <= step ? 'bg-brand shadow-[0_0_10px_rgba(var(--brand-rgb),0.3)]' : 'bg-gray-200'"
+        ></div>
+      </div>
     </div>
-    <p v-if="error" class="mt-2 text-sm text-red-600">{{ error }}</p>
-    <FormErrors :fields="errorFields" />
 
-    <OnboardingStepProfile
-      v-if="step === 1"
-      :universal="universal"
-      :countries="COUNTRIES"
-      :careerGoalDraft="careerGoalDraft"
-      @set-universal="setUniversalField"
-      @set-career-goal-draft="setCareerGoalDraft"
-      @add-career-goal="addCareerGoal"
-      @remove-career-goal="removeCareerGoal"
-      @next="nextStep"
-    />
+    <!-- Main Content Card -->
+    <div class="w-full max-w-2xl glass-card p-6 sm:p-8 shadow-2xl shadow-slate-200/50">
+      <p v-if="error" class="mb-6 p-4 rounded-xl bg-red-50 text-sm text-red-600 border border-red-100 flex items-center gap-2">
+        <AlertCircle class="h-4 w-4" />
+        {{ error }}
+      </p>
+      
+      <FormErrors :fields="errorFields" class="mb-6" />
 
-    <OnboardingStepEducation
-      v-else-if="step === 2"
-      :educationLevel="educationLevel"
-      @set-education-level="setEducationLevel"
-      @back="prevStep"
-      @next="nextStep"
-    />
+      <OnboardingStepProfile
+        v-if="step === 1"
+        :universal="universal"
+        :countries="COUNTRIES"
+        :careerGoalDraft="careerGoalDraft"
+        @set-universal="setUniversalField"
+        @set-career-goal-draft="setCareerGoalDraft"
+        @add-career-goal="addCareerGoal"
+        @remove-career-goal="removeCareerGoal"
+        @next="nextStep"
+      />
 
-    <OnboardingStepAcademicHighSchool
-      v-else-if="step === 3 && educationLevel === 'high_school'"
-      :hs="hs"
-      :kcseGrades="KCSE_GRADES"
-      :subjectByCode="_KCSE_SUBJECT_BY_CODE"
-      :hsAvailableSubjects="hsAvailableSubjects"
-      :hsValidation="hsValidation"
-      :hsSubjectQuery="hsSubjectQuery"
-      :knecMinSubjects="KNEC_MIN_SUBJECTS"
-      :knecMaxSubjects="KNEC_MAX_SUBJECTS"
-      @set-hs-subject-query="setHsSubjectQuery"
-      @set-hs-kcse-mean-grade="setHsMeanGrade"
-      @set-hs-subject-grade="setHsSubjectGrade"
-      @add-subject="hsAddSubject"
-      @remove-subject="hsRemoveSubject"
-      @toggle-favorite="hsToggleFavorite"
-      @drag-start="hsOnDragStart"
-      @drop="hsOnDrop"
-      @back="prevStep"
-      @next="nextStep"
-    />
+      <OnboardingStepEducation
+        v-else-if="step === 2"
+        :educationLevel="educationLevel"
+        @set-education-level="setEducationLevel"
+        @back="prevStep"
+        @next="nextStep"
+      />
 
-    <OnboardingStepAcademicCollege
-      v-else-if="step === 3 && educationLevel !== 'high_school'"
-      :uni="uni"
-      @set-uni="setUniField"
-      @back="prevStep"
-      @next="nextStep"
-    />
+      <OnboardingStepAcademicHighSchool
+        v-else-if="step === 3 && educationLevel === 'high_school'"
+        :hs="hs"
+        :kcseGrades="KCSE_GRADES"
+        :subjectByCode="_KCSE_SUBJECT_BY_CODE"
+        :hsAvailableSubjects="hsAvailableSubjects"
+        :hsValidation="hsValidation"
+        :hsSubjectQuery="hsSubjectQuery"
+        :knecMinSubjects="KNEC_MIN_SUBJECTS"
+        :knecMaxSubjects="KNEC_MAX_SUBJECTS"
+        @set-hs-subject-query="setHsSubjectQuery"
+        @set-hs-kcse-mean-grade="setHsMeanGrade"
+        @set-hs-subject-grade="setHsSubjectGrade"
+        @add-subject="hsAddSubject"
+        @remove-subject="hsRemoveSubject"
+        @toggle-favorite="hsToggleFavorite"
+        @drag-start="hsOnDragStart"
+        @drop="hsOnDrop"
+        @back="prevStep"
+        @next="nextStep"
+      />
 
-    <OnboardingStepLifestyle
-      v-else-if="step === 4"
-      :lifestyle="lifestyle"
-      :preferences="preferences"
-      @set-lifestyle="setLifestyleField"
-      @set-preferences="setPreferencesField"
-      @back="prevStep"
-      @next="nextStep"
-    />
+      <OnboardingStepAcademicCollege
+        v-else-if="step === 3 && educationLevel !== 'high_school'"
+        :uni="uni"
+        @set-uni="setUniField"
+        @back="prevStep"
+        @next="nextStep"
+      />
 
-    <OnboardingStepRiasec
-      v-else-if="step === 5"
-      :idx="Number(riasecIdx || 0)"
-      :total="Number(riasecScenarios.length || 1)"
-      :question="riasecCurrent"
-      :selectedOptionId="riasecSelectedOptionId()"
-      @choose="setRiasecChoice"
-      @back="riasecBack"
-      @next="riasecNext"
-    />
+      <OnboardingStepLifestyle
+        v-else-if="step === 4"
+        :lifestyle="lifestyle"
+        :preferences="preferences"
+        @set-lifestyle="setLifestyleField"
+        @set-preferences="setPreferencesField"
+        @back="prevStep"
+        @next="nextStep"
+      />
 
-    <OnboardingStepReview
-      v-else-if="step === 6"
-      :loading="loading"
-      @back="prevStep"
-      @submit="submitAll"
-    />
+      <OnboardingStepRiasec
+        v-else-if="step === 5"
+        :idx="Number(riasecIdx || 0)"
+        :total="Number(riasecScenarios.length || 1)"
+        :question="riasecCurrent"
+        :selectedOptionId="riasecSelectedOptionId()"
+        @choose="setRiasecChoice"
+        @back="riasecBack"
+        @next="riasecNext"
+      />
+
+      <OnboardingStepReview
+        v-else-if="step === 6"
+        :loading="loading"
+        @back="prevStep"
+        @submit="submitAll"
+      />
+    </div>
+
+    <!-- Security hint -->
+    <div class="mt-8 flex items-center gap-2 text-gray-400">
+      <Lock class="h-3.5 w-3.5 text-brand/40" />
+      <span class="text-[10px] font-bold uppercase tracking-widest">End-to-end encrypted storage</span>
+    </div>
   </main>
 </template>
 

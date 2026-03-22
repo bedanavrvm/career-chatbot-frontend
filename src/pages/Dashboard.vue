@@ -118,7 +118,7 @@ function openRiasecDetails () {
 </script>
 
 <template>
-  <main class="flex-1 overflow-y-auto p-4 sm:p-6 lg:p-8 bg-[#f8fafc]/50 relative">
+  <main class="flex-1 overflow-y-auto p-4 sm:p-6 lg:p-8 bg-slate-100/60 relative">
     <!-- background decor -->
     <div class="absolute top-0 right-0 -z-10 w-1/3 h-1/3 bg-brand/5 blur-[120px] rounded-full"></div>
     <div class="absolute bottom-10 left-10 -z-10 w-1/4 h-1/4 bg-brand/5 blur-[100px] rounded-full"></div>
@@ -293,7 +293,7 @@ function openRiasecDetails () {
             </div>
           </router-link>
 
-          <router-link to="/chat" class="action-card">
+          <router-link to="/careers" class="action-card">
             <div class="action-icon-soft bg-orange-50 text-orange-600 group-hover:bg-orange-600 group-hover:text-white transition-all">
               <Search class="h-6 w-6" />
             </div>

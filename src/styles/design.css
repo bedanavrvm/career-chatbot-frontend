@@ -10,8 +10,9 @@
     --radius-xl: 1.25rem;
     --shadow-soft: 0 4px 12px rgba(15, 23, 42, 0.06);
     --shadow-elevated: 0 10px 25px rgba(15, 23, 42, 0.12);
-    --shadow-premium: 0 20px 40px -12px rgba(15, 23, 42, 0.15);
+    --shadow-premium: 0 25px 50px -12px rgba(15, 23, 42, 0.18);
   }
+  .app-bg { @apply bg-[#f1f5f9]; }
 }
 
 @layer components {
@@ -29,7 +30,7 @@
   .btn-sm { @apply px-3 py-2 text-sm rounded-lg; }
 
   .clickable-card { @apply cursor-pointer transition-all hover:bg-white/70 hover:shadow-md hover:-translate-y-0.5 active:translate-y-0 focus:outline-none focus:ring-2 focus:ring-brand/30; }
-  .glass-card { @apply bg-white/60 backdrop-blur-md border border-white/40 shadow-sm rounded-2xl; }
+  .glass-card { @apply bg-white/80 backdrop-blur-md border border-white shadow-sm rounded-2xl; }
   
   .stat-card { @apply card p-5 flex flex-col gap-1 relative overflow-hidden transition-all; }
   .stat-card:hover { @apply shadow-xl -translate-y-1; }

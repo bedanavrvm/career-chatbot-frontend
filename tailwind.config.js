@@ -33,7 +33,7 @@ export default {
       boxShadow: {
         soft: '0 4px 12px rgba(15, 23, 42, 0.06)',
         elevated: '0 10px 25px rgba(15, 23, 42, 0.12)',
-        premium: '0 20px 40px -12px rgba(15, 23, 42, 0.15)',
+        premium: '0 25px 50px -12px rgba(15, 23, 42, 0.18)',
       },
       colors: {
         brand: {
