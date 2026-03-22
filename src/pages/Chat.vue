@@ -535,20 +535,20 @@ onBeforeUnmount(() => {
       <!-- Chat Main -->
       <section :class="['flex-1 flex flex-col min-w-0 h-full transition-all duration-300', sidebarCollapsed ? 'lg:pr-0' : 'lg:pr-0']">
         <!-- Messages Area -->
-        <div ref="scroller" class="flex-1 overflow-y-auto px-4 py-4 sm:px-6 space-y-4">
+        <div ref="scroller" class="flex-1 overflow-y-auto px-4 py-4 sm:px-6 space-y-2">
           <div v-for="(m, idx) in conversation.messages" :key="idx" class="flex flex-col" :class="m.role === 'user' ? 'items-end' : 'items-start'">
             
             <!-- Message Label -->
-            <span class="text-[10px] font-black uppercase tracking-widest text-gray-400 mb-1.5 px-2">
+            <span class="text-[10px] font-black uppercase tracking-widest text-gray-400 mb-0.5 px-2">
               {{ m.role === 'user' ? 'You' : 'Assistant' }}
             </span>
 
             <div
               :class="[
-                'max-w-[85%] sm:max-w-[70%] p-4 shadow-sm relative group transition-all duration-300',
+                'max-w-[85%] sm:max-w-[70%] p-2 px-4 shadow-sm relative group transition-all duration-300',
                 m.role === 'user'
-                  ? 'bg-brand text-white rounded-3xl rounded-tr-sm shadow-brand/10'
-                  : 'glass-card bg-white/80 text-gray-900 rounded-3xl rounded-tl-sm border-white/60'
+                  ? 'bg-brand text-white rounded-2xl rounded-tr-sm shadow-brand/10'
+                  : 'glass-card bg-white/80 text-gray-900 rounded-2xl rounded-tl-sm border-white/60'
               ]"
             >
               <div class="text-[15px] leading-relaxed whitespace-pre-wrap break-words">

@@ -103,7 +103,11 @@ function campusLabel(c) {
 </script>
 
 <template>
-  <main class="min-h-screen bg-slate-100/60 pb-20">
+  <main class="min-h-screen bg-slate-50/50 pb-20 relative">
+    <!-- background decor -->
+    <div class="absolute top-0 right-0 -z-10 w-1/3 h-1/3 bg-brand/5 blur-[120px] rounded-full"></div>
+    <div class="absolute bottom-10 left-10 -z-10 w-1/4 h-1/4 bg-brand/5 blur-[100px] rounded-full"></div>
+
     <!-- Header -->
     <header class="bg-white/80 backdrop-blur-xl border-b border-white sticky top-0 z-30 px-4 py-4 sm:px-6">
       <div class="max-w-7xl mx-auto flex items-center justify-between gap-4">
@@ -115,7 +119,12 @@ function campusLabel(c) {
             <ArrowLeft class="h-5 w-5 group-hover:-translate-x-0.5 transition-transform" />
           </button>
           <div>
-            <h1 class="text-xl font-black text-gray-900 leading-tight">{{ title }}</h1>
+            <div class="flex items-center gap-3 flex-wrap">
+              <h1 class="text-xl font-black text-gray-900 leading-tight">{{ title }}</h1>
+              <span v-if="inst?.alias" class="px-2 py-0.5 rounded-lg bg-emerald-50 text-emerald-600 font-black text-[9px] uppercase tracking-widest border border-emerald-100/50 shadow-sm">
+                {{ inst.alias }}
+              </span>
+            </div>
             <p v-if="inst" class="text-[10px] font-bold text-gray-500 uppercase tracking-widest mt-0.5">
               {{ inst.code }} · {{ inst.region }} · {{ inst.county }}
             </p>
@@ -181,7 +190,7 @@ function campusLabel(c) {
               </section>
 
               <!-- Main Campus -->
-              <section v-if="mainCampus" class="glass-card-premium p-6 sm:p-8 flex flex-col">
+              <section v-if="mainCampus" class="glass-card-premium p-6 sm:p-8 flex flex-col min-h-[320px]">
                  <div class="flex items-center justify-between gap-4 mb-6">
                     <div class="flex items-center gap-3">
                        <div class="h-10 w-10 rounded-2xl bg-orange-50 text-orange-500 flex items-center justify-center">
@@ -209,6 +218,11 @@ function campusLabel(c) {
                       referrerpolicy="no-referrer-when-downgrade"
                       title="Main campus map"
                     />
+                 </div>
+                 <div v-else class="mt-auto flex flex-col items-center justify-center bg-slate-50/50 rounded-3xl border-2 border-dashed border-slate-200 aspect-video lg:aspect-square xl:aspect-video p-6 text-center">
+                    <MapPin class="h-10 w-10 text-slate-200 mb-3" />
+                    <p class="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1">Interactive Map Unavailable</p>
+                    <p class="text-[9px] font-bold text-slate-300 uppercase tracking-widest leading-relaxed">No geographic coordinates matched for this institution</p>
                  </div>
               </section>
            </div>
@@ -260,7 +274,7 @@ function campusLabel(c) {
                  <div 
                    v-for="c in branchCampuses" 
                    :key="c.campus" 
-                   class="flex items-center justify-between p-4 rounded-2xl bg-white/40 border border-white"
+                   class="flex items-center justify-between p-4 rounded-2xl bg-white/40 border border-white shadow-sm"
                  >
                     <div class="min-w-0">
                        <p class="text-xs font-black text-gray-900 truncate">{{ c.campus }}</p>
@@ -273,22 +287,16 @@ function campusLabel(c) {
               </div>
            </div>
 
-           <!-- Historical Context -->
-           <div v-if="inst.alias" class="glass-card-premium p-6 sm:p-8 bg-indigo-900/[0.02]">
-              <div class="flex items-center gap-3 mb-6">
-                 <div class="h-10 w-10 rounded-2xl bg-indigo-50 text-indigo-500 flex items-center justify-center">
-                   <History class="h-6 w-6" />
-                 </div>
-                 <h2 class="text-xs font-black text-gray-400 uppercase tracking-widest">Brand Alias</h2>
-              </div>
-              <p class="text-lg font-black text-indigo-900/60 lowercase tracking-tighter">{{ inst.alias }}</p>
-           </div>
-
            <!-- Meta Info -->
            <div v-if="hasAside" class="glass-card-premium p-6 sm:p-8">
-              <h2 class="text-xs font-black text-gray-400 uppercase tracking-widest mb-4">Metadata Analysis</h2>
-              <div class="p-4 rounded-2xl bg-slate-900 text-[10px] font-mono text-emerald-400/80 leading-relaxed overflow-x-auto">
-                 {{ inst.metadata }}
+              <div class="flex items-center gap-3 mb-6">
+                 <div class="h-10 w-10 rounded-2xl bg-slate-900 text-emerald-400 flex items-center justify-center">
+                   <History class="h-6 w-6" />
+                 </div>
+                  <h2 class="text-xs font-black text-gray-400 uppercase tracking-widest">System Metadata</h2>
+              </div>
+              <div class="p-4 rounded-2xl bg-slate-900 text-[10px] font-mono text-emerald-400/80 leading-relaxed overflow-x-auto shadow-inner border border-slate-800">
+                 <pre>{{ JSON.stringify(inst.metadata, null, 2) }}</pre>
               </div>
            </div>
         </aside>
