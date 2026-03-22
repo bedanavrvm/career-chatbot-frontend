@@ -102,6 +102,7 @@ const activeCitation = ref('')
 const systemStatus = ref(null)
 
 const sidebarCollapsed = ref(false)
+const sourcesOpen = ref(false)
 const mobilePanelOpen = ref(false)
 
 const showPanel = computed(() => {
@@ -512,6 +513,15 @@ onBeforeUnmount(() => {
         </button>
 
         <button 
+          v-if="sidebarCollapsed"
+          class="btn-outline btn-sm h-9 px-3 border-transparent hover:bg-white/50 text-brand"
+          title="Open Intelligence"
+          @click="sidebarCollapsed = false"
+        >
+          <ChevronLeft class="h-4 w-4" />
+        </button>
+
+        <button 
           class="btn-outline btn-sm h-9 px-3 border-transparent hover:bg-red-50 hover:text-red-600"
           title="Clear session"
           @click="clearSession"
@@ -622,8 +632,8 @@ onBeforeUnmount(() => {
       <aside
         v-if="showPanel"
         :class="[
-          'z-50 lg:z-auto transition-all duration-500 ease-in-out h-full overflow-hidden flex flex-col',
-          'fixed inset-y-0 right-0 w-full sm:w-[460px] max-w-full bg-white/95 backdrop-blur-3xl shadow-2xl lg:shadow-none lg:bg-transparent lg:static lg:w-auto lg:col-span-2',
+          'z-50 lg:z-auto transition-all duration-300 ease-in-out h-full overflow-hidden flex flex-col',
+          'fixed inset-y-0 right-0 w-full sm:w-[460px] max-w-full bg-white/95 backdrop-blur-3xl shadow-2xl lg:shadow-none lg:bg-transparent lg:static lg:w-[400px] lg:min-w-[400px] lg:col-span-2',
           mobilePanelOpen ? 'translate-x-0' : 'translate-x-full lg:translate-x-0',
           sidebarCollapsed ? 'hidden' : 'block'
         ]"
@@ -636,18 +646,27 @@ onBeforeUnmount(() => {
                 <div class="h-2 w-2 rounded-full bg-brand"></div>
                 <h2 class="text-sm font-black text-gray-900 uppercase tracking-widest">Intelligence</h2>
              </div>
-             <button
-               class="h-8 w-8 rounded-xl bg-white border border-slate-200 flex items-center justify-center text-gray-400 hover:text-brand hover:border-brand transition-all shadow-sm group"
-               @click="sidebarCollapsed = true; closeMobilePanel()"
-             >
-               <ChevronRight class="h-4 w-4 group-hover:translate-x-0.5 transition-transform" />
-             </button>
+             <div class="flex items-center gap-2">
+                <button
+                  class="h-8 w-8 rounded-xl bg-white border border-slate-200 flex items-center justify-center text-gray-400 hover:text-indigo-500 hover:border-indigo-500 transition-all shadow-sm group"
+                  title="View sources"
+                  @click="sourcesOpen = true"
+                >
+                  <BookOpen class="h-4 w-4" />
+                </button>
+                <button
+                  class="h-8 w-8 rounded-xl bg-white border border-slate-200 flex items-center justify-center text-gray-400 hover:text-brand hover:border-brand transition-all shadow-sm group"
+                  @click="sidebarCollapsed = true; closeMobilePanel()"
+                >
+                  <ChevronRight class="h-4 w-4 group-hover:translate-x-0.5 transition-transform" />
+                </button>
+             </div>
           </div>
 
           <!-- Tab Bar -->
           <div class="flex p-1 bg-gray-100/30 shrink-0 mx-4 mt-4 rounded-2xl border border-white">
             <button
-              v-for="t in ['recommendations', 'sources', 'details']"
+              v-for="t in ['recommendations', 'details']"
               :key="t"
               :class="[
                 'flex-1 py-1.5 text-[9px] font-black uppercase tracking-widest rounded-xl transition-all',
@@ -729,58 +748,6 @@ onBeforeUnmount(() => {
                </div>
              </div>
  
-             <!-- SOURCES TAB -->
-             <div v-show="rightTab === 'sources'" class="p-4 sm:p-6 space-y-6">
-                <div class="flex items-center gap-3">
-                  <div class="h-10 w-10 rounded-2xl bg-indigo-50 text-indigo-500 flex items-center justify-center shrink-0">
-                    <BookOpen class="h-6 w-6" />
-                  </div>
-                  <div>
-                    <h3 class="text-base font-black text-gray-900">Information Sources</h3>
-                    <p class="text-[10px] text-gray-500 font-bold uppercase tracking-widest">{{ citedSources.length }} references cited</p>
-                  </div>
-                </div>
- 
-                <div v-if="!citedSources.length" class="flex flex-col items-center justify-center py-10 text-center opacity-40">
-                   <Info class="h-10 w-10 text-slate-300 mb-3" />
-                   <p class="text-xs font-bold text-gray-500">No citations in recent message</p>
-                </div>
- 
-                <div v-else class="space-y-4">
-                   <div 
-                     v-for="s in citedSources" 
-                     :key="s.citation" 
-                     :id="`source-${s.citation}`"
-                     class="glass-card p-4 border-white/60 transition-all duration-300"
-                     :class="activeCitation === s.citation ? 'ring-2 ring-brand ring-offset-2 bg-brand/5' : ''"
-                   >
-                      <div class="flex items-center gap-2 mb-2">
-                         <span class="px-2 py-0.5 rounded-lg bg-brand text-white text-[9px] font-black">{{ s.citation }}</span>
-                         <h4 class="text-xs font-black text-gray-900 truncate">{{ s.title || 'Institutional Data' }}</h4>
-                      </div>
-                      <p class="text-[11px] text-gray-600 leading-relaxed italic line-clamp-3">"{{ s.snippet || 'Referenced institutional overview and program specifications.' }}"</p>
-                   </div>
-                </div>
-
-                <!-- Context Breakdown -->
-                <div class="pt-6 border-t border-white/80">
-                   <h4 class="text-[10px] font-black text-gray-400 uppercase tracking-widest mb-4">Internal Context</h4>
-                   <div class="p-4 rounded-2xl bg-slate-900 text-[10px] font-mono text-emerald-400/80 leading-relaxed space-y-2">
-                      <div class="flex items-center justify-between border-b border-emerald-900/50 pb-1.5 mb-1.5">
-                         <span class="opacity-50">FSM_STATE</span>
-                         <span class="font-black text-emerald-300">{{ conversation.fsm_state || 'IDLE' }}</span>
-                      </div>
-                      <div v-if="Object.keys(conversation.slots || {}).length" class="space-y-1">
-                         <div v-for="(v, k) in conversation.slots" :key="k" class="flex items-start justify-between gap-4">
-                            <span class="opacity-50 shrink-0">{{ k }}:</span>
-                            <span class="text-emerald-300 text-right">{{ v }}</span>
-                         </div>
-                      </div>
-                      <div v-else class="opacity-30 italic">No active slots identified.</div>
-                   </div>
-                </div>
-             </div>
- 
              <!-- DETAILS TAB -->
             <div v-show="rightTab === 'details'" class="p-4 sm:p-6 h-full flex flex-col">
               <div v-if="programLoading" class="flex flex-col items-center justify-center py-20 gap-4">
@@ -823,6 +790,89 @@ onBeforeUnmount(() => {
         </div>
       </aside>
     </div>
+    <!-- Sources Bottom Drawer -->
+    <Transition
+      enter-active-class="transition-all duration-300 ease-out"
+      enter-from-class="translate-y-full opacity-0"
+      enter-to-class="translate-y-0 opacity-100"
+      leave-active-class="transition-all duration-200 ease-in"
+      leave-from-class="translate-y-0 opacity-100"
+      leave-to-class="translate-y-full opacity-0"
+    >
+      <div v-if="sourcesOpen" class="fixed inset-0 z-[60] flex items-end justify-center sm:p-4">
+        <div class="absolute inset-0 bg-slate-900/40 backdrop-blur-sm" @click="sourcesOpen = false"></div>
+        
+        <div class="relative w-full max-w-4xl bg-white rounded-t-[2.5rem] sm:rounded-[2.5rem] shadow-2xl border-t border-white overflow-hidden max-h-[80vh] flex flex-col">
+          <!-- Drawer Header -->
+          <div class="px-8 py-6 border-b border-gray-100 flex items-center justify-between shrink-0 bg-white/80 backdrop-blur-md sticky top-0 z-10">
+            <div class="flex items-center gap-4">
+              <div class="h-12 w-12 rounded-2xl bg-indigo-50 text-indigo-500 flex items-center justify-center shrink-0">
+                <BookOpen class="h-7 w-7" />
+              </div>
+              <div>
+                <h3 class="text-xl font-black text-gray-900">Information Sources</h3>
+                <p class="text-xs font-bold text-gray-500 uppercase tracking-widest">{{ citedSources.length }} references utilized in response</p>
+              </div>
+            </div>
+            <button 
+              @click="sourcesOpen = false" 
+              class="h-10 w-10 rounded-2xl bg-gray-50 text-gray-400 hover:text-gray-900 hover:bg-gray-100 transition-all flex items-center justify-center"
+            >
+              <ChevronDown class="h-6 w-6" />
+            </button>
+          </div>
+
+          <!-- Drawer Content -->
+          <div class="flex-1 overflow-y-auto p-8 custom-scrollbar">
+            <div class="grid grid-cols-1 lg:grid-cols-3 gap-8">
+              <!-- Citations -->
+              <div class="lg:col-span-2 space-y-6">
+                <h4 class="text-[10px] font-black text-gray-400 uppercase tracking-widest mb-2 px-2">Knowledge Citations</h4>
+                <div v-if="!citedSources.length" class="flex flex-col items-center justify-center py-20 text-center opacity-30">
+                   <Info class="h-12 w-12 mb-4" />
+                   <p class="text-sm font-bold">No active citations for this message</p>
+                </div>
+                <div v-else class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                   <div 
+                     v-for="s in citedSources" 
+                     :key="s.citation" 
+                     class="glass-card p-5 border-white shadow-sm hover:shadow-md transition-all duration-300"
+                   >
+                      <div class="flex items-center gap-2 mb-3">
+                         <span class="px-2.5 py-1 rounded-xl bg-brand text-white text-[10px] font-black shadow-brand/20">{{ s.citation }}</span>
+                         <h5 class="text-xs font-black text-gray-900 truncate">{{ s.title || 'Institutional Dataset' }}</h5>
+                      </div>
+                      <p class="text-xs text-gray-600 leading-relaxed italic line-clamp-4">"{{ s.snippet || 'Referenced institutional overview, eligibility criteria, and program specifications.' }}"</p>
+                   </div>
+                </div>
+              </div>
+
+              <!-- Context -->
+              <div class="space-y-6">
+                <h4 class="text-[10px] font-black text-gray-400 uppercase tracking-widest mb-2 px-2">Internal Context</h4>
+                <div class="p-6 rounded-[2rem] bg-slate-900 text-[11px] font-mono text-emerald-400/80 leading-relaxed shadow-xl border border-slate-800">
+                  <div class="flex items-center justify-between border-b border-emerald-900/50 pb-3 mb-4">
+                     <span class="opacity-50">FSM_STATE</span>
+                     <span class="font-black text-emerald-300 text-sm tracking-wider">{{ conversation.fsm_state || 'IDLE' }}</span>
+                  </div>
+                  
+                  <div class="space-y-3">
+                    <p class="text-[9px] opacity-40 font-bold uppercase tracking-widest mb-2">Collected Slots</p>
+                    <div v-if="Object.keys(conversation.slots || {}).length" class="space-y-2">
+                       <div v-for="(v, k) in conversation.slots" :key="k" class="flex flex-col gap-1">
+                          <span class="opacity-50 text-[10px]">{{ k }}</span>
+                          <span class="text-emerald-300 font-bold bg-emerald-950/30 px-2 py-1 rounded-lg border border-emerald-900/50">{{ v }}</span>
+                       </div>
+                    </div>
+                    <div v-else class="opacity-30 italic py-4 text-center">No active slots.</div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </Transition>
   </main>
 </template>
 
