@@ -340,21 +340,22 @@ function openRiasecDetails () {
 
         <div class="card p-4">
           <h2 class="text-lg font-semibold">{{ isHighSchool ? 'KCSE snapshot' : 'Academic status' }}</h2>
-        <div class="mt-3 text-sm text-gray-700 space-y-1">
-          <div v-if="isHighSchool"><span class="font-medium">Grades provided:</span> {{ gradesProvidedLabel }}</div>
-          <div v-if="isHighSchool"><span class="font-medium">Top subjects:</span> {{ topSubjectsLabel }}</div>
-          <div v-if="isHighSchool && kcse?.has_grades"><span class="font-medium">Top 4 points:</span> {{ kcse.top4_points }}</div>
-          <div v-if="isHighSchool && kcse?.has_grades"><span class="font-medium">Top 7 points:</span> {{ kcse.top7_points }}</div>
-          
-          <div v-if="!isHighSchool && profile?.universal?.qualification">
-            <span class="font-medium">Qualification:</span> {{ profile.universal.qualification }}
+          <div class="mt-3 text-sm text-gray-700 space-y-1">
+            <div v-if="isHighSchool"><span class="font-medium">Grades provided:</span> {{ gradesProvidedLabel }}</div>
+            <div v-if="isHighSchool"><span class="font-medium">Top subjects:</span> {{ topSubjectsLabel }}</div>
+            <div v-if="isHighSchool && kcse?.has_grades"><span class="font-medium">Top 4 points:</span> {{ kcse.top4_points }}</div>
+            <div v-if="isHighSchool && kcse?.has_grades"><span class="font-medium">Top 7 points:</span> {{ kcse.top7_points }}</div>
+            
+            <div v-if="!isHighSchool && profile?.universal?.qualification">
+              <span class="font-medium">Qualification:</span> {{ profile.universal.qualification }}
+            </div>
+            <div v-if="!isHighSchool && profile?.universal?.field_of_study">
+              <span class="font-medium">Field:</span> {{ profile.universal.field_of_study }}
+            </div>
           </div>
-          <div v-if="!isHighSchool && profile?.universal?.field_of_study">
-            <span class="font-medium">Field:</span> {{ profile.universal.field_of_study }}
+          <div v-if="isHighSchool && !kcse?.has_grades" class="mt-3 text-xs text-gray-600">
+            Add your grades to unlock eligibility and better recommendations.
           </div>
-        </div>
-        <div v-if="isHighSchool && !kcse?.has_grades" class="mt-3 text-xs text-gray-600">
-          Add your grades to unlock eligibility and better recommendations.
         </div>
       </div>
     </section>
