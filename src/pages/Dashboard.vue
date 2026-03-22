@@ -60,6 +60,14 @@ const regionLabel = computed(() => {
   return profile.value?.universal?.region || '—'
 })
 
+const isHighSchool = computed(() => {
+  return profile.value?.education_level === 'high_school'
+})
+
+const isGraduate = computed(() => {
+  return profile.value?.education_level === 'college_graduate' || profile.value?.education_level === 'college_student'
+})
+
 const clusterScoreLabel = computed(() => {
   const v = kcse.value?.cluster_score
   if (v == null || Number.isNaN(Number(v))) return '—'
@@ -157,6 +165,7 @@ function openRiasecDetails () {
 
     <section v-else class="mt-6 grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
           <div
+            v-if="isHighSchool"
             class="card p-4 clickable-card"
             role="button"
             tabindex="0"
@@ -170,6 +179,18 @@ function openRiasecDetails () {
             <div class="mt-2 text-3xl font-bold text-gray-900">{{ clusterScoreLabel }}</div>
             <div class="mt-2 text-xs text-gray-500" v-if="kcse?.has_grades">Based on {{ kcse.subjects_provided }} subject grades</div>
             <div class="mt-2 text-xs text-gray-500" v-else>Complete your KCSE grades to compute this</div>
+          </div>
+
+          <div
+            v-else
+            class="card p-4 bg-gradient-to-br from-brand/5 to-transparent border-brand/20 shadow-sm"
+          >
+            <div class="flex items-center gap-2 text-sm text-brand font-medium" title="Career Trajectory">
+              <TrendingUp class="h-4 w-4" />
+              <span>Career Trajectory</span>
+            </div>
+            <div class="mt-2 text-lg font-semibold text-gray-900">Career-First Mode</div>
+            <div class="mt-2 text-xs text-gray-600">Focused on professional paths and occupations aligned to your diploma/degree.</div>
           </div>
 
           <div
@@ -269,14 +290,21 @@ function openRiasecDetails () {
       </div>
 
       <div class="card p-4">
-        <h2 class="text-lg font-semibold">KCSE snapshot</h2>
+        <h2 class="text-lg font-semibold">{{ isHighSchool ? 'KCSE snapshot' : 'Academic status' }}</h2>
         <div class="mt-3 text-sm text-gray-700 space-y-1">
-          <div><span class="font-medium">Grades provided:</span> {{ gradesProvidedLabel }}</div>
-          <div><span class="font-medium">Top subjects:</span> {{ topSubjectsLabel }}</div>
-          <div v-if="kcse?.has_grades"><span class="font-medium">Top 4 points:</span> {{ kcse.top4_points }}</div>
-          <div v-if="kcse?.has_grades"><span class="font-medium">Top 7 points:</span> {{ kcse.top7_points }}</div>
+          <div v-if="isHighSchool"><span class="font-medium">Grades provided:</span> {{ gradesProvidedLabel }}</div>
+          <div v-if="isHighSchool"><span class="font-medium">Top subjects:</span> {{ topSubjectsLabel }}</div>
+          <div v-if="isHighSchool && kcse?.has_grades"><span class="font-medium">Top 4 points:</span> {{ kcse.top4_points }}</div>
+          <div v-if="isHighSchool && kcse?.has_grades"><span class="font-medium">Top 7 points:</span> {{ kcse.top7_points }}</div>
+          
+          <div v-if="!isHighSchool && profile?.universal?.qualification">
+            <span class="font-medium">Qualification:</span> {{ profile.universal.qualification }}
+          </div>
+          <div v-if="!isHighSchool && profile?.universal?.field_of_study">
+            <span class="font-medium">Field:</span> {{ profile.universal.field_of_study }}
+          </div>
         </div>
-        <div v-if="!kcse?.has_grades" class="mt-3 text-xs text-gray-600">
+        <div v-if="isHighSchool && !kcse?.has_grades" class="mt-3 text-xs text-gray-600">
           Add your grades to unlock eligibility and better recommendations.
         </div>
       </div>
