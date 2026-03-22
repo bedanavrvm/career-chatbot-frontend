@@ -1,8 +1,9 @@
 <script setup>
 import { ref, computed, onMounted, onBeforeUnmount, nextTick, watch } from 'vue'
 import { useRouter } from 'vue-router'
-import { convGetSession, convPostMessage, convDeleteSession, convGetRecommendations, catalogStatus, convStreamMessage, catalogGetProgramDetail } from '../lib/api'
-import { Plus, Trash2, RefreshCw, Send, ChevronDown, Sparkles } from 'lucide-vue-next'
+import { convGetSession, convPostMessage, convDeleteSession, convGetRecommendations, catalogStatus, convStreamMessage, catalogGetProgramDetail, catalogGetProgramCareers } from '../lib/api'
+import { Plus, Trash2, RefreshCw, Send, ChevronDown, Sparkles, ChevronLeft, ChevronRight } from 'lucide-vue-next'
+import CareerPath from '../components/CareerPath.vue'
 import { useAuth } from '../lib/useAuth'
 import { useApiCall } from '../utils/useApiCall'
 import { subjectByCode } from './onboarding/kcseSubjects'
@@ -45,6 +46,8 @@ const rightTab = ref('recommendations')   // 'recommendations' | 'details'
 const selectedProgram = ref(null)
 const programLoading = ref(false)
 const programError = ref('')
+const careerPath = ref(null)
+const careerPathLoading = ref(false)
 
 async function openProgramDetails (r) {
   const id = r?.program_id
@@ -52,9 +55,18 @@ async function openProgramDetails (r) {
   rightTab.value = 'details'
   programLoading.value = true
   programError.value = ''
+  careerPath.value = null
   selectedProgram.value = null
+  if (mobilePanelOpen.value) closeMobilePanel()
+  
+  // Parallel fetch for speed
+  const p1 = catalogGetProgramDetail(id, idToken.value)
+  const p2 = catalogGetProgramCareers(id)
+
   try {
-    selectedProgram.value = await catalogGetProgramDetail(id, idToken.value)
+    const [detail, careers] = await Promise.all([p1, p2])
+    selectedProgram.value = detail
+    careerPath.value = careers?.career_path || null
   } catch (e) {
     programError.value = e?.message || 'Failed to load program details'
   } finally {
@@ -88,6 +100,33 @@ const recsMax = 50
 const scroller = ref(null)
 const activeCitation = ref('')
 const systemStatus = ref(null)
+
+const sidebarCollapsed = ref(false)
+const mobilePanelOpen = ref(false)
+
+const showPanel = computed(() => {
+  return mobilePanelOpen.value || !sidebarCollapsed.value
+})
+
+function openMobilePanel() {
+  mobilePanelOpen.value = true
+}
+
+function closeMobilePanel() {
+  mobilePanelOpen.value = false
+}
+
+watch(mobilePanelOpen, (open) => {
+  try {
+    document.body.style.overflow = open ? 'hidden' : ''
+  } catch (_) {}
+})
+
+onBeforeUnmount(() => {
+  try {
+    document.body.style.overflow = ''
+  } catch (_) {}
+})
 
 const trySuggestions = [
   'Here are my grades: Math A-, English B+… What courses fit me?',
@@ -424,7 +463,7 @@ onBeforeUnmount(() => {
 </script>
 
 <template>
-  <main class="h-full box-border overflow-hidden py-4 px-4 sm:px-6 lg:px-8 flex flex-col min-h-0">
+  <main class="h-full box-border overflow-hidden py-4 px-3 sm:px-6 lg:px-8 flex flex-col min-h-0">
     <div class="mx-auto max-w-screen-2xl flex flex-col min-h-0 flex-1">
       <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2">
         <div class="min-w-0">
@@ -446,6 +485,29 @@ onBeforeUnmount(() => {
         </div>
 
         <div class="flex flex-wrap items-center justify-end gap-2 shrink-0">
+          <button
+            class="btn btn-outline btn-sm gap-2 transition-all hover:bg-gray-50 hover:shadow-sm active:scale-[0.99] lg:hidden shrink-0"
+            type="button"
+            title="Open panel"
+            aria-label="Open panel"
+            @click="openMobilePanel"
+          >
+            <ChevronLeft class="h-4 w-4" />
+            <span>Panel</span>
+          </button>
+
+          <button
+            v-if="sidebarCollapsed"
+            class="btn btn-outline btn-sm gap-2 transition-all hover:bg-gray-50 hover:shadow-sm active:scale-[0.99] hidden lg:inline-flex shrink-0"
+            type="button"
+            title="Show panel"
+            aria-label="Show panel"
+            @click="sidebarCollapsed = false"
+          >
+            <ChevronLeft class="h-4 w-4" />
+            <span>Show panel</span>
+          </button>
+
           <label class="inline-flex items-center gap-2 text-sm text-gray-700 border rounded-lg bg-white/70 px-2 py-1.5 md:px-3 md:py-2 shrink-0">
             <span class="text-gray-600 hidden sm:inline">Local</span>
             <input type="checkbox" v-model="useGemini" class="h-4 w-4" />
@@ -477,15 +539,15 @@ onBeforeUnmount(() => {
         </div>
       </div>
 
-      <div class="mt-3 grid grid-cols-1 lg:grid-cols-5 gap-8 min-h-0 flex-1">
-        <section class="lg:col-span-3 min-h-0">
-          <div class="border rounded-xl p-4 bg-white/60 flex flex-col h-full min-h-0">
+      <div class="mt-3 grid grid-cols-1 lg:grid-cols-5 gap-5 sm:gap-8 min-h-0 flex-1">
+        <section :class="['min-h-0', sidebarCollapsed ? 'lg:col-span-5' : 'lg:col-span-3']">
+          <div class="border rounded-xl p-3 sm:p-4 bg-white/60 flex flex-col h-full min-h-0">
             <div ref="scroller" class="flex-1 overflow-y-auto pr-2 min-h-0">
               <div v-for="(m, idx) in conversation.messages" :key="idx" class="mb-3">
                 <div :class="['flex', m.role === 'user' ? 'justify-end' : 'justify-start']">
                   <div
                     :class="[
-                      'max-w-[85%] sm:max-w-[75%] px-4 py-2 whitespace-pre-wrap break-words shadow-sm',
+                      'max-w-[88%] sm:max-w-[75%] px-3 sm:px-4 py-2 whitespace-pre-wrap break-words shadow-sm',
                       m.role === 'user'
                         ? 'bg-brand text-white rounded-2xl rounded-br-md'
                         : 'bg-gray-100 text-gray-900 rounded-2xl rounded-bl-md'
@@ -546,8 +608,53 @@ onBeforeUnmount(() => {
           </div>
         </section>
 
-        <aside class="lg:col-span-2 min-h-0">
-          <div class="border rounded-xl bg-white/60 h-full min-h-0 flex flex-col overflow-hidden">
+        <div
+          v-if="mobilePanelOpen"
+          class="fixed inset-0 bg-black/40 z-40 lg:hidden"
+          role="button"
+          tabindex="0"
+          aria-label="Close panel"
+          @click="closeMobilePanel"
+          @keydown.enter.prevent="closeMobilePanel"
+        ></div>
+
+        <aside
+          v-if="showPanel"
+          :class="[
+            'min-h-0 z-50 lg:z-auto',
+            'fixed inset-y-0 right-0 w-full sm:w-[420px] max-w-full bg-white/95 backdrop-blur border-l shadow-xl transform transition-transform lg:transform-none',
+            'lg:static lg:col-span-2 lg:w-auto lg:bg-transparent lg:border-0 lg:backdrop-blur-0 lg:shadow-none',
+            mobilePanelOpen ? 'translate-x-0' : 'translate-x-full lg:translate-x-0'
+          ]"
+          aria-label="Recommendations and details panel"
+        >
+          <div class="border rounded-xl bg-white/60 h-full min-h-0 flex flex-col overflow-hidden lg:h-full">
+
+            <div class="flex items-center justify-between gap-2 p-3 border-b shrink-0 lg:hidden">
+              <div class="text-sm font-semibold text-gray-900">Panel</div>
+              <button
+                type="button"
+                class="btn btn-outline btn-sm gap-2"
+                aria-label="Close panel"
+                @click="closeMobilePanel"
+              >
+                <ChevronRight class="h-4 w-4" />
+                <span>Close</span>
+              </button>
+            </div>
+
+            <div class="hidden lg:flex items-center justify-between gap-2 px-3 py-2 border-b shrink-0">
+              <div class="text-sm font-semibold text-gray-900">Recommendations</div>
+              <button
+                type="button"
+                class="btn btn-outline btn-sm gap-2"
+                aria-label="Hide panel"
+                @click="sidebarCollapsed = true"
+              >
+                <ChevronRight class="h-4 w-4" />
+                <span>Hide</span>
+              </button>
+            </div>
 
             <!-- Tab bar -->
             <div class="flex border-b shrink-0">
@@ -898,6 +1005,9 @@ onBeforeUnmount(() => {
                     {{ selectedProgram.institution.website }}
                   </a>
                 </div>
+
+                <!-- career trajectory -->
+                <CareerPath v-if="careerPath" :path="careerPath" :loading="programLoading" />
               </div><!-- /program detail -->
             </div><!-- /Details tab -->
 
