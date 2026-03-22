@@ -2,7 +2,7 @@
 import { ref, computed, onMounted, onBeforeUnmount, nextTick, watch } from 'vue'
 import { useRouter } from 'vue-router'
 import { convGetSession, convPostMessage, convDeleteSession, convGetRecommendations, catalogStatus, convStreamMessage, catalogGetProgramDetail, catalogGetProgramCareers } from '../lib/api'
-import { Plus, Trash2, RefreshCw, Send, ChevronDown, Sparkles, ChevronLeft, ChevronRight } from 'lucide-vue-next'
+import { Plus, Trash2, RefreshCw, Send, ChevronDown, Sparkles, ChevronLeft, ChevronRight, BookOpen, Info } from 'lucide-vue-next'
 import CareerPath from '../components/CareerPath.vue'
 import { useAuth } from '../lib/useAuth'
 import { useApiCall } from '../utils/useApiCall'
@@ -525,7 +525,7 @@ onBeforeUnmount(() => {
       <!-- Chat Main -->
       <section :class="['flex-1 flex flex-col min-w-0 h-full transition-all duration-300', sidebarCollapsed ? 'lg:pr-0' : 'lg:pr-0']">
         <!-- Messages Area -->
-        <div ref="scroller" class="flex-1 overflow-y-auto px-4 py-6 sm:px-8 space-y-6">
+        <div ref="scroller" class="flex-1 overflow-y-auto px-4 py-4 sm:px-6 space-y-4">
           <div v-for="(m, idx) in conversation.messages" :key="idx" class="flex flex-col" :class="m.role === 'user' ? 'items-end' : 'items-start'">
             
             <!-- Message Label -->
@@ -578,7 +578,7 @@ onBeforeUnmount(() => {
         </div>
 
         <!-- Input Bar Area -->
-        <div class="px-4 py-4 sm:px-8 sm:pb-8 shrink-0">
+        <div class="px-4 py-3 sm:px-6 sm:pb-6 shrink-0">
           <div class="max-w-3xl mx-auto flex flex-col gap-3">
             
             <!-- Suggestions Chip Carousel -->
@@ -628,7 +628,7 @@ onBeforeUnmount(() => {
           sidebarCollapsed ? 'hidden' : 'block'
         ]"
       >
-        <div class="h-full flex flex-col bg-white/40 border-l border-white/80 lg:rounded-3xl lg:border-2 lg:shadow-xl lg:shadow-slate-200/50 m-2 lg:m-4 overflow-hidden text-sm">
+        <div class="h-full flex flex-col bg-white/40 border-l border-white/80 lg:rounded-3xl lg:border-2 lg:shadow-xl lg:shadow-slate-200/50 m-1 lg:m-2 overflow-hidden text-sm">
           
           <!-- Panel Header -->
           <div class="p-4 border-b border-white/60 flex items-center justify-between shrink-0">
@@ -647,10 +647,10 @@ onBeforeUnmount(() => {
           <!-- Tab Bar -->
           <div class="flex p-1 bg-gray-100/30 shrink-0 mx-4 mt-4 rounded-2xl border border-white">
             <button
-              v-for="t in ['recommendations', 'details']"
+              v-for="t in ['recommendations', 'sources', 'details']"
               :key="t"
               :class="[
-                'flex-1 py-2 text-[10px] font-black uppercase tracking-widest rounded-xl transition-all',
+                'flex-1 py-1.5 text-[9px] font-black uppercase tracking-widest rounded-xl transition-all',
                 rightTab === t ? 'bg-white text-brand shadow-sm shadow-slate-200' : 'text-gray-400 hover:text-gray-600'
               ]"
               @click="rightTab = t"
@@ -726,10 +726,62 @@ onBeforeUnmount(() => {
                      {{ r.program_name }}
                    </div>
                  </div>
-              </div>
-            </div>
+               </div>
+             </div>
+ 
+             <!-- SOURCES TAB -->
+             <div v-show="rightTab === 'sources'" class="p-4 sm:p-6 space-y-6">
+                <div class="flex items-center gap-3">
+                  <div class="h-10 w-10 rounded-2xl bg-indigo-50 text-indigo-500 flex items-center justify-center shrink-0">
+                    <BookOpen class="h-6 w-6" />
+                  </div>
+                  <div>
+                    <h3 class="text-base font-black text-gray-900">Information Sources</h3>
+                    <p class="text-[10px] text-gray-500 font-bold uppercase tracking-widest">{{ citedSources.length }} references cited</p>
+                  </div>
+                </div>
+ 
+                <div v-if="!citedSources.length" class="flex flex-col items-center justify-center py-10 text-center opacity-40">
+                   <Info class="h-10 w-10 text-slate-300 mb-3" />
+                   <p class="text-xs font-bold text-gray-500">No citations in recent message</p>
+                </div>
+ 
+                <div v-else class="space-y-4">
+                   <div 
+                     v-for="s in citedSources" 
+                     :key="s.citation" 
+                     :id="`source-${s.citation}`"
+                     class="glass-card p-4 border-white/60 transition-all duration-300"
+                     :class="activeCitation === s.citation ? 'ring-2 ring-brand ring-offset-2 bg-brand/5' : ''"
+                   >
+                      <div class="flex items-center gap-2 mb-2">
+                         <span class="px-2 py-0.5 rounded-lg bg-brand text-white text-[9px] font-black">{{ s.citation }}</span>
+                         <h4 class="text-xs font-black text-gray-900 truncate">{{ s.title || 'Institutional Data' }}</h4>
+                      </div>
+                      <p class="text-[11px] text-gray-600 leading-relaxed italic line-clamp-3">"{{ s.snippet || 'Referenced institutional overview and program specifications.' }}"</p>
+                   </div>
+                </div>
 
-            <!-- DETAILS TAB -->
+                <!-- Context Breakdown -->
+                <div class="pt-6 border-t border-white/80">
+                   <h4 class="text-[10px] font-black text-gray-400 uppercase tracking-widest mb-4">Internal Context</h4>
+                   <div class="p-4 rounded-2xl bg-slate-900 text-[10px] font-mono text-emerald-400/80 leading-relaxed space-y-2">
+                      <div class="flex items-center justify-between border-b border-emerald-900/50 pb-1.5 mb-1.5">
+                         <span class="opacity-50">FSM_STATE</span>
+                         <span class="font-black text-emerald-300">{{ conversation.fsm_state || 'IDLE' }}</span>
+                      </div>
+                      <div v-if="Object.keys(conversation.slots || {}).length" class="space-y-1">
+                         <div v-for="(v, k) in conversation.slots" :key="k" class="flex items-start justify-between gap-4">
+                            <span class="opacity-50 shrink-0">{{ k }}:</span>
+                            <span class="text-emerald-300 text-right">{{ v }}</span>
+                         </div>
+                      </div>
+                      <div v-else class="opacity-30 italic">No active slots identified.</div>
+                   </div>
+                </div>
+             </div>
+ 
+             <!-- DETAILS TAB -->
             <div v-show="rightTab === 'details'" class="p-4 sm:p-6 h-full flex flex-col">
               <div v-if="programLoading" class="flex flex-col items-center justify-center py-20 gap-4">
                 <div class="h-12 w-12 border-4 border-brand/20 border-t-brand rounded-full animate-spin"></div>

@@ -27,7 +27,8 @@ watch(
   () => [route.name, route.path, isAuthenticated.value],
   () => {
     const isHome = route.name === 'home' || route.path === '/'
-    hideNav.value = route.name === 'onboarding' || route.path === '/onboarding'
+    const isChat = route.name === 'chat' || route.path === '/chat'
+    hideNav.value = route.name === 'onboarding' || route.path === '/onboarding' || isChat
     showSidebar.value = isAuthenticated.value && !isHome && !hideNav.value
     if (!showSidebar.value) sidebarOpen.value = false
   },
@@ -48,8 +49,8 @@ watch(
   <ConfirmDialogHost />
   <ToastHost />
   <GlobalLoadingOverlay />
-  <NavBar :showSidebarToggle="showSidebar" :hideNavLinks="hideNav" @toggle-sidebar="sidebarOpen = true" />
-  <div class="flex min-h-0 h-[calc(100dvh-4rem)]">
+  <NavBar v-if="!hideNav" :showSidebarToggle="showSidebar" :hideNavLinks="hideNav" @toggle-sidebar="sidebarOpen = true" />
+  <div :class="['flex min-h-0', hideNav ? 'h-[100dvh]' : 'h-[calc(100dvh-4rem)]']">
     <AppSidebar
       v-if="showSidebar"
       :open="sidebarOpen"

@@ -15,7 +15,7 @@ import {
   CircleDashed,
   Briefcase,
   History,
-  Wallets,
+  Wallet,
   Building2,
   Globe
 } from 'lucide-vue-next'
@@ -399,7 +399,7 @@ async function checkEligibility () {
           <aside class="glass-card-premium p-6 sm:p-8">
              <div class="flex items-center gap-3 mb-6">
                 <div class="h-10 w-10 rounded-2xl bg-emerald-50 text-emerald-500 flex items-center justify-center">
-                  <Wallets class="h-6 w-6" />
+                  <Wallet class="h-6 w-6" />
                 </div>
                 <h2 class="text-xs font-black text-gray-400 uppercase tracking-widest">Program Costs</h2>
              </div>
