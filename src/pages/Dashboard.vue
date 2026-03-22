@@ -1,7 +1,7 @@
 <script setup>
 import { ref, onMounted, computed } from 'vue'
 import { useRouter } from 'vue-router'
-import { Gauge, Brain, GraduationCap, MapPin, UserRoundCog, MessageSquare, ListChecks, Search, BookOpen } from 'lucide-vue-next'
+import { Gauge, Brain, GraduationCap, MapPin, UserRoundCog, MessageSquare, ListChecks, Search, BookOpen, AlertCircle, ChevronRight, Lightbulb, Zap, TrendingUp, Sparkles, Calculator, Heart, Info, Compass } from 'lucide-vue-next'
 import { onboardingDashboard } from '../lib/api'
 import { useAuth } from '../lib/useAuth'
 import { useApiCall } from '../utils/useApiCall'
@@ -151,6 +151,25 @@ function openRiasecDetails () {
       </div>
     </header>
 
+    <!-- Semantic Alerts / Attention Section -->
+    <section v-if="isHighSchool && !kcse?.has_grades" class="mt-8">
+      <div class="glass-card bg-amber-50/50 border-amber-200/50 p-4 flex items-start gap-4 shadow-lg shadow-amber-900/5">
+        <div class="h-10 w-10 rounded-full bg-amber-100 text-amber-600 flex items-center justify-center shrink-0">
+          <AlertCircle class="h-6 w-6" />
+        </div>
+        <div>
+          <h3 class="font-bold text-amber-900">Grades Missing</h3>
+          <p class="text-sm text-amber-700/80 mt-1 max-w-2xl">
+            You haven't provided your KCSE grades yet. Adding them will allow us to calculate your cluster scores and show you exactly which programs you qualify for.
+          </p>
+          <button @click="$router.push('/onboarding')" class="mt-3 text-sm font-bold text-amber-700 hover:text-amber-800 flex items-center gap-1 group">
+            Complete your profile now
+            <ChevronRight class="h-4 w-4 transition-transform group-hover:translate-x-1" />
+          </button>
+        </div>
+      </div>
+    </section>
+
     <p v-if="error" class="mt-3 text-sm text-red-600">{{ error }}</p>
 
     <div v-if="loading" class="mt-6 space-y-6 animate-pulse">
@@ -231,11 +250,11 @@ function openRiasecDetails () {
           <GraduationCap class="h-5 w-5" />
         </div>
         <GraduationCap class="stat-icon-bg text-blue-600" />
-        <span class="text-[10px] font-black text-gray-400 uppercase tracking-[0.1em]">Academic Level</span>
+        <span class="text-[10px] font-black text-blue-400/80 uppercase tracking-[0.1em]">Academic Level</span>
         <div class="text-xl font-bold text-gray-900 mt-1 capitalize truncate">
           {{ educationLabel.replace('_', ' ') }}
         </div>
-        <div class="mt-2 text-[10px] text-gray-500 truncate">
+        <div class="mt-2 text-[10px] text-blue-600/70 font-medium truncate">
           {{ profile?.universal?.qualification || 'General Education' }}
         </div>
       </div>
@@ -246,11 +265,11 @@ function openRiasecDetails () {
           <MapPin class="h-5 w-5" />
         </div>
         <MapPin class="stat-icon-bg text-orange-600" />
-        <span class="text-[10px] font-black text-gray-400 uppercase tracking-[0.1em]">Preferred Town</span>
+        <span class="text-[10px] font-black text-orange-400/80 uppercase tracking-[0.1em]">Preferred Town</span>
         <div class="text-xl font-bold text-gray-900 mt-1 truncate">
           {{ regionLabel }}
         </div>
-        <div class="mt-2 text-[10px] text-gray-500">Kenya</div>
+        <div class="mt-2 text-[10px] text-orange-600/70 font-medium whitespace-nowrap overflow-hidden text-ellipsis">Kenya</div>
       </div>
     </section>
 
@@ -306,8 +325,21 @@ function openRiasecDetails () {
         </div>
       </div>
 
-      <div class="card p-4">
-        <h2 class="text-lg font-semibold">{{ isHighSchool ? 'KCSE snapshot' : 'Academic status' }}</h2>
+      <div class="space-y-6">
+        <!-- Pro Tip / By the way -->
+        <div class="stat-card bg-brand/5 border-brand/20 shadow-none">
+          <div class="h-8 w-8 rounded-lg bg-brand/10 text-brand flex items-center justify-center mb-3">
+            <Lightbulb class="h-5 w-5" />
+          </div>
+          <h4 class="font-bold text-gray-900">Career Insight</h4>
+          <p class="text-xs text-brand-dark/70 mt-1 leading-relaxed">
+            Did you know? Career satisfaction is highest when your RIASEC traits align with your work environment.
+            <span class="font-bold text-brand block mt-2 cursor-pointer hover:underline" @click="$router.push('/chat')">Ask Gemini more →</span>
+          </p>
+        </div>
+
+        <div class="card p-4">
+          <h2 class="text-lg font-semibold">{{ isHighSchool ? 'KCSE snapshot' : 'Academic status' }}</h2>
         <div class="mt-3 text-sm text-gray-700 space-y-1">
           <div v-if="isHighSchool"><span class="font-medium">Grades provided:</span> {{ gradesProvidedLabel }}</div>
           <div v-if="isHighSchool"><span class="font-medium">Top subjects:</span> {{ topSubjectsLabel }}</div>
@@ -327,6 +359,7 @@ function openRiasecDetails () {
       </div>
     </section>
 
+    <section v-if="!loading" class="mt-12 grid grid-cols-1 lg:grid-cols-3 gap-8">
       <div class="lg:col-span-2 glass-card p-8 border-none shadow-premium">
         <h2 class="text-xl font-bold text-gray-900 tracking-tight">RIASEC Interest Profile</h2>
         <p class="text-sm text-gray-500 mt-1">Numerical breakdown of your core professional drivers.</p>
