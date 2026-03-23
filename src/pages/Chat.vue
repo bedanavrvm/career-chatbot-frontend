@@ -74,6 +74,51 @@ async function openProgramDetails (r) {
     programLoading.value = false
   }
 }
+
+const qualificationStatus = computed(() => {
+  if (!selectedProgram.value) return null
+  const p = selectedProgram.value
+  
+  // 1. If we have estimated_cluster_points, it means they met min subject requirements
+  const cp = p.estimated_cluster_points
+  const breakdown = p.cluster_points_breakdown
+  
+  if (cp !== null && cp !== undefined) {
+    // Check against latest cutoff (2023)
+    const latestCutoff = p.cutoffs?.find(c => c.year === 2023)?.cutoff || p.cutoffs?.[0]?.cutoff
+    if (latestCutoff && cp < latestCutoff) {
+      return {
+        qualified: false,
+        label: 'Low Points',
+        color: 'bg-amber-100 text-amber-700 border-amber-200',
+        reason: `Your cluster points (${cp}) are below the 2023 cutoff (${latestCutoff}).`
+      }
+    }
+    return {
+      qualified: true,
+      label: 'Qualified',
+      color: 'bg-emerald-100 text-emerald-700 border-emerald-200',
+      description: `Your points: ${cp}`
+    }
+  }
+  
+  // 2. If no points, check reason
+  if (breakdown?.reason) {
+    let msg = 'Does not meet minimum requirements'
+    if (breakdown.reason === 'need_at_least_7_subjects') msg = 'Missing KCSE subjects'
+    if (breakdown.reason === 'insufficient_program_subject_data') msg = 'Reqs checking unavailable'
+    
+    return {
+      qualified: false,
+      label: 'Not Qualified',
+      color: 'bg-red-100 text-red-700 border-red-200',
+      reason: msg
+    }
+  }
+  
+  return null
+})
+
 const idToken = ref('')
 const storageKey = computed(() => {
   const uid = user.value?.uid || ''
@@ -758,11 +803,27 @@ onBeforeUnmount(() => {
               </div>
 
               <div v-else-if="selectedProgram" class="space-y-6">
-                <div>
-                   <span class="inline-flex px-2 py-0.5 rounded-lg bg-brand/10 text-brand text-[9px] font-black uppercase tracking-widest mb-2">{{ selectedProgram.program_code }}</span>
-                   <h3 class="text-xl font-black text-gray-900 leading-tight">{{ selectedProgram.program_name }}</h3>
-                   <p class="text-sm font-bold text-gray-500 mt-1 uppercase tracking-tight">{{ selectedProgram.institution_name }}</p>
+                <div class="space-y-1">
+                  <div class="flex items-center gap-2">
+                    <span class="text-[10px] font-black text-brand bg-brand/10 px-2 py-0.5 rounded-lg border border-brand/10 uppercase tracking-widest">
+                      {{ selectedProgram.program_code }}
+                    </span>
+                    <div 
+                      v-if="qualificationStatus"
+                      :class="['px-2 py-0.5 rounded-lg border text-[10px] font-black uppercase tracking-widest', qualificationStatus.color]"
+                    >
+                      {{ qualificationStatus.label }}
+                    </div>
+                  </div>
+                  <h3 class="text-xl font-black text-gray-900 leading-tight">
+                    {{ selectedProgram.program_name }}
+                  </h3>
+                  <div v-if="qualificationStatus?.reason" class="text-[10px] font-bold text-red-500/80 uppercase tracking-wide bg-red-50/50 p-2 rounded-xl border border-red-100/50">
+                    <Info class="h-3 w-3 inline mr-1 -mt-0.5" />
+                    {{ qualificationStatus.reason }}
+                  </div>
                 </div>
+                <p class="text-sm font-bold text-gray-500 mt-1 uppercase tracking-tight">{{ selectedProgram.institution_name }}</p>
 
                 <div v-if="selectedProgram.description" class="p-4 rounded-2xl bg-slate-50 border border-slate-100">
                    <h4 class="text-[10px] font-black text-gray-400 uppercase tracking-widest mb-2">About</h4>

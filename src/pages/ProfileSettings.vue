@@ -1,7 +1,7 @@
 <script setup>
 import { ref, reactive, onMounted, computed } from 'vue'
 import { useRouter } from 'vue-router'
-import { ArrowLeft } from 'lucide-vue-next'
+import { ArrowLeft, User, GraduationCap, Heart, Sparkles, Save, RotateCcw } from 'lucide-vue-next'
 import { onboardingMe, onboardingSave } from '../lib/api'
 import { useAuth } from '../lib/useAuth'
 import { useApiCall } from '../utils/useApiCall'
@@ -31,10 +31,10 @@ const { set: setProfileCache } = useProfile()
 
 const activeTab = ref('user')
 const TABS = [
-  { id: 'user', label: 'User' },
-  { id: 'education', label: 'Education' },
-  { id: 'lifestyle', label: 'Lifestyle' },
-  { id: 'riasec', label: 'RIASEC' },
+  { id: 'user', label: 'User', icon: User },
+  { id: 'education', label: 'Education', icon: GraduationCap },
+  { id: 'lifestyle', label: 'Lifestyle', icon: Heart },
+  { id: 'riasec', label: 'RIASEC', icon: Sparkles },
 ]
 
 const COUNTRIES = [
@@ -294,171 +294,253 @@ onMounted(async () => {
 </script>
 
 <template>
-  <main class="container-page px-4 py-6">
-    <div class="flex items-start justify-between gap-4">
-      <div>
-        <h1 class="text-2xl font-bold">Profile settings</h1>
-        <p class="text-gray-600">Edit your profile without the step-by-step wizard</p>
-      </div>
-      <button
-        class="btn btn-outline btn-md"
-        type="button"
-        title="Back"
-        aria-label="Back"
-        @click="router.back()"
-      >
-        <ArrowLeft class="h-4 w-4" />
-        <span class="sr-only">Back</span>
-      </button>
+  <main class="min-h-screen app-bg relative overflow-hidden pb-12">
+    <!-- Background Decorations -->
+    <div class="absolute top-0 left-0 w-full h-full pointer-events-none -z-10">
+      <div class="absolute top-[-10%] right-[-10%] w-[40%] h-[40%] rounded-full bg-brand/10 blur-[120px]"></div>
+      <div class="absolute bottom-[-10%] left-[-10%] w-[40%] h-[40%] rounded-full bg-indigo-500/10 blur-[120px]"></div>
     </div>
 
-    <p v-if="error" class="mt-3 text-sm text-red-600">{{ error }}</p>
-
-    <div class="mt-6 border-b border-gray-200">
-      <div class="flex flex-wrap gap-2" role="tablist" aria-label="Profile sections">
+    <div class="container-page py-10 relative z-10">
+      <div class="flex items-center justify-between mb-8">
+        <div class="space-y-1">
+          <h1 class="text-3xl font-black text-gray-900 tracking-tight">Profile Settings</h1>
+          <p class="text-sm font-bold text-gray-500 uppercase tracking-widest">Manage your academic and career DNA</p>
+        </div>
         <button
-          v-for="t in TABS"
-          :key="t.id"
+          class="h-12 w-12 rounded-2xl bg-white border border-gray-100 shadow-sm flex items-center justify-center text-gray-600 hover:text-brand hover:border-brand/20 transition-all active:scale-95"
           type="button"
-          role="tab"
-          :aria-selected="activeTab === t.id"
-          :class="[
-            'px-4 py-2 rounded-t-lg border border-b-0 text-sm font-medium transition-colors',
-            activeTab === t.id ? 'bg-white border-gray-200 text-gray-900' : 'bg-gray-50 border-transparent text-gray-600 hover:text-gray-900 hover:bg-gray-100',
-          ]"
-          @click="activeTab = t.id"
-        >{{ t.label }}</button>
-      </div>
-    </div>
-
-    <section class="mt-6">
-      <div v-show="activeTab === 'user'" role="tabpanel" class="card p-4 space-y-4">
-        <h2 class="text-lg font-semibold">User profile</h2>
-        <div>
-          <label class="label">Full Name</label>
-          <input v-model="universal.fullName" class="input input-lg w-full" />
-        </div>
-        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-          <div>
-            <label class="label">Age</label>
-            <input v-model="universal.age" type="number" min="10" max="100" class="input input-lg w-full" />
-          </div>
-          <div>
-            <label class="label">Gender</label>
-            <select v-model="universal.gender" class="input input-lg w-full">
-              <option value="">Select</option>
-              <option>Female</option><option>Male</option><option>Other</option><option>Prefer not to say</option>
-            </select>
-          </div>
-        </div>
-        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-          <div>
-            <label class="label">Country</label>
-            <input v-model="universal.country" list="countries" class="input input-lg w-full" />
-            <datalist id="countries">
-              <option v-for="c in COUNTRIES" :key="c" :value="c" />
-            </datalist>
-          </div>
-          <div>
-            <label class="label">County / Region</label>
-            <input v-model="universal.region" class="input input-lg w-full" />
-          </div>
-        </div>
-        <CareerGoalsInput
-          :careerGoals="universal.careerGoals"
-          :draft="careerGoalDraft"
-          @set-draft="setCareerGoalDraft"
-          @add="addCareerGoal"
-          @remove="removeCareerGoal"
-        />
+          @click="router.back()"
+        >
+          <ArrowLeft class="h-5 w-5" />
+        </button>
       </div>
 
-      <div v-show="activeTab === 'education'" role="tabpanel" class="card p-3 space-y-3">
-        <h2 class="text-lg font-semibold">Education level</h2>
-        <div>
-          <label class="label">Highest education level</label>
-          <select v-model="educationLevel" class="input input-md w-full">
-            <option value="">Select</option>
-            <option value="high_school">High School</option>
-            <option value="college_student">College Student</option>
-            <option value="college_graduate">College Graduate</option>
-          </select>
-        </div>
-
-        <template v-if="educationLevel==='high_school'">
-          <EducationTabHighSchool
-            :hs="hs"
-            :kcseGrades="KCSE_GRADES"
-            :subjectByCode="_KCSE_SUBJECT_BY_CODE"
-            :hsAvailableSubjects="hsAvailableSubjects"
-            :hsValidation="hsValidation"
-            :hsSubjectQuery="hsSubjectQuery"
-            :knecMinSubjects="KNEC_MIN_SUBJECTS"
-            :knecMaxSubjects="KNEC_MAX_SUBJECTS"
-            @set-hs-subject-query="setHsSubjectQuery"
-            @set-hs-kcse-mean-grade="setHsMeanGrade"
-            @set-hs-subject-grade="setHsSubjectGrade"
-            @add-subject="hsAddSubject"
-            @remove-subject="hsRemoveSubject"
-            @toggle-favorite="hsToggleFavorite"
-            @drag-start="hsOnDragStart"
-            @drop="hsOnDrop"
-          />
-        </template>
-
-        <template v-else-if="educationLevel">
-          <EducationTabCollege :uni="uni" @set-uni="setUniField" />
-        </template>
+      <div v-if="error" class="mb-6 p-4 rounded-2xl bg-red-50 border border-red-100 text-sm font-bold text-red-600 flex items-center gap-3">
+        <Sparkles class="h-5 w-5 rotate-45" />
+        {{ error }}
       </div>
 
-      <div v-show="activeTab === 'lifestyle'" role="tabpanel" class="card p-4 space-y-4">
-        <h2 class="text-lg font-semibold">Lifestyle & work preferences</h2>
-        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-          <div>
-            <label class="label">Preferred work environment</label>
-            <select v-model="lifestyle.workEnvironment" class="input input-lg w-full">
-              <option value="">Select</option>
-              <option>Office</option><option>Hybrid</option><option>Remote</option><option>Field / Outdoors</option>
-            </select>
+      <div class="glass-card-premium overflow-hidden">
+        <!-- Tabs Header -->
+        <div class="flex border-b border-gray-100 bg-white/40 p-2 gap-1 overflow-x-auto">
+          <button
+            v-for="t in TABS"
+            :key="t.id"
+            type="button"
+            @click="activeTab = t.id"
+            :class="[
+              'flex items-center gap-2 px-6 py-3 rounded-xl text-xs font-black uppercase tracking-widest transition-all whitespace-nowrap',
+              activeTab === t.id 
+                ? 'bg-white text-brand shadow-sm border border-gray-100' 
+                : 'text-gray-400 hover:text-gray-600 hover:bg-white/50'
+            ]"
+          >
+            <component :is="t.icon" class="h-4 w-4" />
+            {{ t.label }}
+          </button>
+        </div>
+
+        <div class="p-8">
+          <div v-show="activeTab === 'user'" class="space-y-8 max-w-4xl">
+            <div class="flex items-center gap-3 mb-2">
+              <div class="h-10 w-10 rounded-2xl bg-brand/5 flex items-center justify-center text-brand">
+                <User class="h-5 w-5" />
+              </div>
+              <h2 class="text-xl font-black text-gray-900 tracking-tight">Basic Information</h2>
+            </div>
+            
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+              <div class="md:col-span-2">
+                <label class="label mb-2">Full Name</label>
+                <div class="relative group">
+                  <input v-model="universal.fullName" class="input group-focus-within:border-brand transition-all" placeholder="Enter your full name" />
+                </div>
+              </div>
+
+              <div>
+                <label class="label mb-2">Age</label>
+                <input v-model="universal.age" type="number" min="10" max="100" class="input" placeholder="Years" />
+              </div>
+              
+              <div>
+                <label class="label mb-2">Gender</label>
+                <select v-model="universal.gender" class="input">
+                  <option value="">Select Gender</option>
+                  <option>Female</option><option>Male</option><option>Other</option><option>Prefer not to say</option>
+                </select>
+              </div>
+
+              <div>
+                <label class="label mb-2">Country</label>
+                <input v-model="universal.country" list="countries" class="input" placeholder="Select Country" />
+                <datalist id="countries">
+                  <option v-for="c in COUNTRIES" :key="c" :value="c" />
+                </datalist>
+              </div>
+
+              <div>
+                <label class="label mb-2">County / Region</label>
+                <input v-model="universal.region" class="input" placeholder="Your region" />
+              </div>
+            </div>
+
+            <div class="pt-4">
+              <CareerGoalsInput
+                :careerGoals="universal.careerGoals"
+                :draft="careerGoalDraft"
+                @set-draft="setCareerGoalDraft"
+                @add="addCareerGoal"
+                @remove="removeCareerGoal"
+              />
+            </div>
           </div>
-          <div>
-            <label class="label">Preferred work schedule</label>
-            <select v-model="lifestyle.workSchedule" class="input input-lg w-full">
-              <option value="">Select</option>
-              <option>Full-time</option><option>Part-time</option><option>Flexible</option><option>Shift-based</option>
-            </select>
+
+          <div v-show="activeTab === 'education'" class="space-y-6">
+             <div class="flex items-center gap-3 mb-2">
+              <div class="h-10 w-10 rounded-2xl bg-brand/5 flex items-center justify-center text-brand">
+                <GraduationCap class="h-5 w-5" />
+              </div>
+              <h2 class="text-xl font-black text-gray-900 tracking-tight">Academic Background</h2>
+            </div>
+
+            <div class="p-6 rounded-3xl bg-slate-50 border border-slate-100 space-y-4">
+              <label class="label">Highest education level attained</label>
+              <div class="grid grid-cols-1 md:grid-cols-3 gap-3">
+                <button 
+                  v-for="opt in [
+                    { id: 'high_school', label: 'High School' },
+                    { id: 'college_student', label: 'College Student' },
+                    { id: 'college_graduate', label: 'College Graduate' }
+                  ]"
+                  :key="opt.id"
+                  @click="educationLevel = opt.id"
+                  :class="[
+                    'p-4 rounded-2xl border text-sm font-black uppercase tracking-widest transition-all text-center',
+                    educationLevel === opt.id 
+                      ? 'bg-white border-brand text-brand shadow-sm ring-4 ring-brand/10' 
+                      : 'bg-white/50 border-gray-100 text-gray-400 hover:border-gray-200'
+                  ]"
+                >
+                  {{ opt.label }}
+                </button>
+              </div>
+            </div>
+
+            <div v-if="educationLevel" class="mt-8 transition-all animate-in fade-in slide-in-from-top-4 duration-500">
+              <template v-if="educationLevel==='high_school'">
+                <EducationTabHighSchool
+                  :hs="hs"
+                  :kcseGrades="KCSE_GRADES"
+                  :subjectByCode="_KCSE_SUBJECT_BY_CODE"
+                  :hsAvailableSubjects="hsAvailableSubjects"
+                  :hsValidation="hsValidation"
+                  :hsSubjectQuery="hsSubjectQuery"
+                  :knecMinSubjects="KNEC_MIN_SUBJECTS"
+                  :knecMaxSubjects="KNEC_MAX_SUBJECTS"
+                  @set-hs-subject-query="setHsSubjectQuery"
+                  @set-hs-kcse-mean-grade="setHsMeanGrade"
+                  @set-hs-subject-grade="setHsSubjectGrade"
+                  @add-subject="hsAddSubject"
+                  @remove-subject="hsRemoveSubject"
+                  @toggle-favorite="hsToggleFavorite"
+                  @drag-start="hsOnDragStart"
+                  @drop="hsOnDrop"
+                />
+              </template>
+              <template v-else>
+                <EducationTabCollege :uni="uni" @set-uni="setUniField" />
+              </template>
+            </div>
           </div>
-          <div>
-            <label class="label">Willing to relocate?</label>
-            <select v-model="lifestyle.relocation" class="input input-lg w-full">
-              <option value="">Select</option>
-              <option>Yes</option><option>No</option><option>Maybe</option>
-            </select>
+
+          <div v-show="activeTab === 'lifestyle'" class="space-y-8 max-w-4xl">
+            <div class="flex items-center gap-3 mb-2">
+              <div class="h-10 w-10 rounded-2xl bg-brand/5 flex items-center justify-center text-brand">
+                <Heart class="h-5 w-5" />
+              </div>
+              <h2 class="text-xl font-black text-gray-900 tracking-tight">Lifestyle & Work Preferences</h2>
+            </div>
+            
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+              <div>
+                <label class="label mb-2">Work Environment</label>
+                <select v-model="lifestyle.workEnvironment" class="input">
+                  <option value="">Select Environment</option>
+                  <option>Office</option><option>Hybrid</option><option>Remote</option><option>Field / Outdoors</option>
+                </select>
+              </div>
+              <div>
+                <label class="label mb-2">Work Schedule</label>
+                <select v-model="lifestyle.workSchedule" class="input">
+                  <option value="">Select Schedule</option>
+                  <option>Full-time</option><option>Part-time</option><option>Flexible</option><option>Shift-based</option>
+                </select>
+              </div>
+              <div>
+                <label class="label mb-2">Willing to relocate?</label>
+                <select v-model="lifestyle.relocation" class="input">
+                  <option value="">Select Preference</option>
+                  <option>Yes</option><option>No</option><option>Maybe</option>
+                </select>
+              </div>
+              <div>
+                <label class="label mb-2">Budget Considerations</label>
+                <select v-model="preferences.budget" class="input">
+                  <option value="">Select Level</option>
+                  <option>Low-cost options</option><option>Balanced</option><option>Not sure</option>
+                </select>
+              </div>
+              <div class="md:col-span-2">
+                <label class="label mb-2">Additional Career Notes</label>
+                <textarea v-model="preferences.notes" class="input min-h-[100px]" placeholder="Any other details you want us to consider..."></textarea>
+              </div>
+            </div>
           </div>
-          <div>
-            <label class="label">Budget considerations</label>
-            <select v-model="preferences.budget" class="input input-lg w-full">
-              <option value="">Select</option>
-              <option>Low-cost options</option><option>Balanced</option><option>Not sure</option>
-            </select>
+
+          <div v-show="activeTab === 'riasec'" class="space-y-6">
+            <div class="flex items-center gap-3 mb-2">
+              <div class="h-10 w-10 rounded-2xl bg-brand/5 flex items-center justify-center text-brand">
+                <Sparkles class="h-5 w-5" />
+              </div>
+              <h2 class="text-xl font-black text-gray-900 tracking-tight">RIASEC DNA</h2>
+            </div>
+            
+            <div class="p-8 rounded-[2rem] bg-indigo-50 border border-indigo-100 flex flex-col items-center text-center gap-6">
+              <div class="h-20 w-20 rounded-full bg-indigo-100 flex items-center justify-center text-indigo-600">
+                <Sparkles class="h-10 w-10" />
+              </div>
+              <div class="space-y-2">
+                <h3 class="text-lg font-black text-indigo-900">Psychometric Interests</h3>
+                <p class="text-sm text-indigo-700/60 max-w-md mx-auto">RIASEC data is generated from your onboarding test and identifies your core personality traits (Realistic, Investigative, Artistic, etc.).</p>
+              </div>
+              <div class="flex gap-4">
+                <button @click="router.push('/onboarding')" class="btn-primary px-8 py-3 rounded-2xl shadow-lg shadow-brand/20">Re-run Onboarding</button>
+              </div>
+            </div>
           </div>
         </div>
-        <div>
-          <label class="label">Additional notes</label>
-          <input v-model="preferences.notes" class="input input-lg w-full" />
+
+        <!-- Sticky Footer -->
+        <div class="p-6 bg-slate-50/80 backdrop-blur-sm border-t border-gray-100 flex items-center justify-end gap-4">
+          <button 
+            class="btn px-6 py-3 rounded-2xl bg-white border border-gray-200 text-gray-600 font-black uppercase tracking-widest text-xs hover:bg-gray-50 transition-all flex items-center gap-2"
+            :disabled="loading" 
+            @click="confirmReset"
+          >
+            <RotateCcw class="h-4 w-4" />
+            Reset
+          </button>
+          <button 
+            class="btn-primary px-8 py-3 rounded-2xl shadow-xl shadow-brand/20 font-black uppercase tracking-widest text-xs flex items-center gap-2"
+            :disabled="loading" 
+            @click="save"
+          >
+            <Save class="h-4 w-4" />
+            Save DNA Changes
+          </button>
         </div>
       </div>
-
-      <div v-show="activeTab === 'riasec'" role="tabpanel" class="card p-4">
-        <h2 class="text-lg font-semibold">RIASEC interests</h2>
-        <p class="mt-2 text-sm text-gray-600">RIASEC is collected during onboarding and is used to guide recommendations.</p>
-        <p class="mt-1 text-sm text-gray-600">To change your RIASEC, re-run onboarding.</p>
-      </div>
-    </section>
-
-    <div class="mt-6 flex gap-3">
-      <button class="btn btn-primary btn-lg" :disabled="loading" @click="save">Save changes</button>
-      <button class="btn btn-secondary btn-lg" :disabled="loading" @click="confirmReset">Reset</button>
     </div>
   </main>
 </template>
