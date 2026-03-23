@@ -475,17 +475,17 @@ async function submitAll() {
 </script>
 
 <template>
-  <main class="min-h-screen app-bg py-12 px-4 sm:px-6 relative overflow-hidden flex flex-col items-center">
+  <main class="min-h-screen app-bg py-4 px-4 sm:px-6 relative overflow-hidden flex flex-col items-center">
     <!-- background decor -->
     <div class="absolute top-0 right-0 -z-10 w-1/3 h-1/3 bg-brand/5 blur-[120px] rounded-full"></div>
     <div class="absolute bottom-10 left-10 -z-10 w-1/4 h-1/4 bg-brand/5 blur-[100px] rounded-full"></div>
 
     <!-- Progress Header -->
-    <div class="w-full max-w-2xl mb-8">
-      <div class="flex items-center justify-between mb-4">
+    <div class="w-full max-w-6xl mb-4">
+      <div class="flex items-center justify-between mb-2">
         <div>
           <h1 class="text-2xl font-black text-gray-900 tracking-tight">Complete your profile</h1>
-          <p class="text-sm text-gray-500 font-medium">Step {{ step }} of 6: {{ stepTitle }}</p>
+          <p class="text-xs text-gray-500 font-medium">Step {{ step }} of 6: {{ stepTitle }}</p>
         </div>
         <div v-if="saveLabel" class="flex items-center gap-2 px-3 py-1 rounded-full bg-white/50 border border-white text-[10px] font-black uppercase tracking-widest text-brand animate-pulse">
           {{ saveLabel }}

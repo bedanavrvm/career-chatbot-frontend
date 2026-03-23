@@ -1,7 +1,7 @@
 <script setup>
 import { ref, onMounted, computed } from 'vue'
 import { useRouter } from 'vue-router'
-import { Gauge, Brain, GraduationCap, MapPin, UserRoundCog, MessageSquare, ListChecks, Search, BookOpen, AlertCircle, ChevronRight, Lightbulb, Zap, TrendingUp, Sparkles, Calculator, Heart, Info, Compass } from 'lucide-vue-next'
+import { Gauge, Brain, GraduationCap, MapPin, UserRoundCog, MessageSquare, ListChecks, Search, BookOpen, AlertCircle, ChevronRight, Lightbulb, Zap, TrendingUp, Sparkles, Calculator, Heart, Info, Compass, User, Trophy, Quote } from 'lucide-vue-next'
 import { onboardingDashboard } from '../lib/api'
 import { useAuth } from '../lib/useAuth'
 import { useApiCall } from '../utils/useApiCall'
@@ -361,22 +361,32 @@ function openRiasecDetails () {
     </section>
 
     <section v-if="!loading" class="mt-12 grid grid-cols-1 lg:grid-cols-3 gap-8">
-      <div class="lg:col-span-2 glass-card p-8 border-none shadow-premium">
-        <h2 class="text-xl font-bold text-gray-900 tracking-tight">RIASEC Interest Profile</h2>
-        <p class="text-sm text-gray-500 mt-1">Numerical breakdown of your core professional drivers.</p>
+      <!-- RIASEC Card -->
+      <div class="lg:col-span-2 glass-card-premium p-6 sm:p-8 relative overflow-hidden">
+        <div class="absolute top-0 right-0 h-32 w-32 bg-brand/5 blur-3xl -mr-16 -mt-16 rounded-full"></div>
         
-        <div class="mt-8 space-y-5">
+        <div class="flex items-center gap-3 mb-8 relative z-10">
+          <div class="h-10 w-10 rounded-2xl bg-brand/10 text-brand flex items-center justify-center">
+             <TrendingUp class="h-6 w-6" />
+          </div>
+          <div>
+            <h2 class="text-xs font-black text-gray-600 uppercase tracking-widest">RIASEC Interest Profile</h2>
+            <p class="text-base text-gray-900 font-bold tracking-tight">Numerical breakdown of your core professional drivers.</p>
+          </div>
+        </div>
+        
+        <div class="space-y-6 relative z-10">
           <div v-for="k in keys()" :key="k" class="group/bar">
             <div class="flex items-center justify-between mb-2">
-              <div class="flex items-center gap-2">
-                <div class="h-2 w-2 rounded-full" :class="getRiasecColor(k)"></div>
-                <span class="text-sm font-bold text-gray-700 group-hover/bar:text-brand transition-colors">{{ k }}</span>
+              <div class="flex items-center gap-3">
+                <div class="h-2 w-2 rounded-full shadow-glow" :class="getRiasecColor(k)"></div>
+                <span class="text-sm font-black text-gray-700 uppercase tracking-[0.05em] group-hover/bar:text-brand transition-colors">{{ k }}</span>
               </div>
-              <span class="text-sm font-black text-gray-400 group-hover/bar:text-gray-900 transition-colors">{{ riasec.scores[k] }}</span>
+              <span class="text-xs font-black text-gray-400 group-hover/bar:text-gray-900 transition-colors">{{ riasec.scores[k] }}</span>
             </div>
-            <div class="riasec-bar-container bg-gray-50/50">
+            <div class="h-2.5 w-full bg-slate-50 border border-slate-100/50 rounded-full overflow-hidden shadow-inner">
               <div 
-                class="riasec-bar-fill shadow-sm"
+                class="h-full rounded-full transition-all duration-1000 ease-out"
                 :class="getRiasecColor(k)"
                 :style="{ width: pct(riasec.scores[k]) + '%' }"
               ></div>
@@ -385,22 +395,69 @@ function openRiasecDetails () {
         </div>
       </div>
 
-      <div class="card p-4">
-        <h2 class="text-lg font-semibold">You</h2>
-        <p class="text-gray-700 mt-1">{{ riasec.narrative || 'Complete your onboarding to see your RIASEC summary.' }}</p>
-        <div class="mt-4 text-sm text-gray-600 space-y-1">
-          <div><span class="font-medium">Name:</span> {{ displayName }}</div>
-          <div><span class="font-medium">Education:</span> {{ educationLabel }}</div>
-          <div><span class="font-medium">Region:</span> {{ regionLabel }}</div>
+      <!-- You Card -->
+      <div class="glass-card-premium p-6 sm:p-8 relative overflow-hidden flex flex-col">
+        <div class="absolute bottom-0 right-0 h-32 w-32 bg-brand/5 blur-3xl -mr-16 -mb-16 rounded-full"></div>
+
+        <div class="flex items-center gap-3 mb-8 relative z-10">
+          <div class="h-10 w-10 rounded-2xl bg-indigo-50 text-indigo-600 flex items-center justify-center">
+             <User class="h-6 w-6" />
+          </div>
+          <div>
+            <h2 class="text-xs font-black text-gray-600 uppercase tracking-widest">Your Profile</h2>
+            <p class="text-base text-gray-900 font-bold tracking-tight">You at a Glance</p>
+          </div>
         </div>
 
-        <div class="mt-4" v-if="careerGoalsLabel.length">
-          <div class="text-sm font-semibold text-gray-900">Career goals</div>
-          <div class="mt-2 flex flex-wrap gap-2">
+        <div class="relative z-10 mb-8 p-4 rounded-2xl bg-slate-50/80 border border-slate-100 group hover:border-brand/20 transition-all">
+           <Quote class="h-4 w-4 text-brand/30 mb-2" />
+           <p class="text-sm font-bold text-gray-800 leading-relaxed italic">
+             {{ riasec.narrative || 'Complete your onboarding to see your personal career narrative.' }}
+           </p>
+        </div>
+
+        <div class="space-y-5 relative z-10">
+           <div class="flex items-center gap-4 group/item">
+              <div class="h-9 w-9 rounded-xl bg-white border border-slate-100 flex items-center justify-center text-slate-400 group-hover/item:text-brand group-hover/item:border-brand/20 transition-all shadow-sm">
+                 <User class="h-5 w-5" />
+              </div>
+              <div>
+                 <p class="text-[9px] font-black text-gray-400 uppercase tracking-widest leading-none mb-1">Full Name</p>
+                 <p class="text-sm font-black text-gray-900 leading-tight">{{ displayName }}</p>
+              </div>
+           </div>
+
+           <div class="flex items-center gap-4 group/item">
+              <div class="h-9 w-9 rounded-xl bg-white border border-slate-100 flex items-center justify-center text-slate-400 group-hover/item:text-brand group-hover/item:border-brand/20 transition-all shadow-sm">
+                 <GraduationCap class="h-5 w-5" />
+              </div>
+              <div>
+                 <p class="text-[9px] font-black text-gray-400 uppercase tracking-widest leading-none mb-1">Education</p>
+                 <p class="text-sm font-black text-gray-900 leading-tight capitalize">{{ educationLabel.replace('_', ' ') }}</p>
+              </div>
+           </div>
+
+           <div class="flex items-center gap-4 group/item">
+              <div class="h-9 w-9 rounded-xl bg-white border border-slate-100 flex items-center justify-center text-slate-400 group-hover/item:text-brand group-hover/item:border-brand/20 transition-all shadow-sm">
+                 <MapPin class="h-5 w-5" />
+              </div>
+              <div>
+                 <p class="text-[9px] font-black text-gray-400 uppercase tracking-widest leading-none mb-1">Region</p>
+                 <p class="text-sm font-black text-gray-900 leading-tight">{{ regionLabel }}</p>
+              </div>
+           </div>
+        </div>
+
+        <div class="mt-auto pt-8 relative z-10" v-if="careerGoalsLabel.length">
+          <div class="flex items-center gap-2 mb-4">
+             <Trophy class="h-4 w-4 text-brand" />
+             <span class="text-[10px] font-black text-gray-600 uppercase tracking-widest">Career Ambitions</span>
+          </div>
+          <div class="flex flex-wrap gap-2">
             <span
-              v-for="(g, idx) in careerGoalsLabel.slice(0, 6)"
+              v-for="(g, idx) in careerGoalsLabel.slice(0, 5)"
               :key="idx"
-              class="inline-flex items-center px-2 py-1 rounded-full text-xs bg-gray-100 text-gray-800 border"
+              class="px-3 py-1.5 rounded-xl text-[10px] font-black uppercase tracking-widest bg-white border border-slate-100 text-gray-700 shadow-sm hover:border-brand transition-colors cursor-default"
             >{{ g }}</span>
           </div>
         </div>
@@ -408,3 +465,12 @@ function openRiasecDetails () {
     </section>
   </main>
 </template>
+
+<style scoped>
+.glass-card-premium {
+  @apply bg-white/70 backdrop-blur-2xl border-2 border-white rounded-[2.5rem] shadow-xl shadow-slate-200/50;
+}
+.shadow-glow {
+  box-shadow: 0 0 10px currentColor;
+}
+</style>

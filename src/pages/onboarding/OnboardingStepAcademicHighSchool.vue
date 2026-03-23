@@ -25,8 +25,8 @@ const emit = defineEmits([
 </script>
 
 <template>
-  <section class="mt-6 space-y-4">
-    <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+  <section class="mt-4 space-y-2">
+    <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
       <div>
         <label class="label">KCSE Mean Grade</label>
         <select

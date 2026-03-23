@@ -69,7 +69,7 @@ function mapsLinkForCampus(c) {
 
 const embeddedMapUrl = computed(() => {
   const q = String(mainCampus.value?.map_query || '').trim()
-  return q ? `https://www.google.com/maps?q=${encodeURIComponent(q)}&output=embed` : ''
+  return q ? `https://maps.google.com/maps?q=${encodeURIComponent(q)}&t=&z=13&ie=UTF8&iwloc=&output=embed` : ''
 })
 
 const hasAside = computed(() => {

@@ -10,8 +10,8 @@ const emit = defineEmits(['back', 'next', 'choose'])
 </script>
 
 <template>
-  <section class="mt-6 space-y-6">
-    <div class="card p-6">
+  <section class="mt-4 space-y-4">
+    <div class="glass-card-premium p-4">
       <div class="flex items-center justify-between gap-4">
         <div class="text-sm text-gray-600">Question {{ (idx + 1) }} of {{ (total || 1) }}</div>
         <div class="text-sm text-gray-500">Pick the option you would most likely do</div>

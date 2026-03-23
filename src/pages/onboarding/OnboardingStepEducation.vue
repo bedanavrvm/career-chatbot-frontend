@@ -7,9 +7,9 @@ const emit = defineEmits(['back', 'next', 'set-education-level'])
 </script>
 
 <template>
-  <section class="mt-6 space-y-4">
-    <label class="label">Highest education level</label>
-    <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+  <section class="mt-4 space-y-3">
+    <label class="label mb-1">Highest education level</label>
+    <div class="grid grid-cols-1 md:grid-cols-3 gap-3">
       <button
         :class="['btn','btn-outline','btn-lg', educationLevel==='high_school' && 'btn-primary']"
         @click="emit('set-education-level', 'high_school')"

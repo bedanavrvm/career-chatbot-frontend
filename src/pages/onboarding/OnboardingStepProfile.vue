@@ -13,7 +13,7 @@ function setUniversal(key, value) {
 </script>
 
 <template>
-  <section class="mt-6 grid grid-cols-1 md:grid-cols-2 gap-4">
+  <section class="mt-4 grid grid-cols-1 md:grid-cols-2 gap-x-4 gap-y-2">
     <div>
       <label class="label">Full Name</label>
       <input
