@@ -50,8 +50,8 @@ const careerPath = ref(null)
 const careerPathLoading = ref(false)
 
 async function openProgramDetails (r) {
-  const id = r?.program_id
-  if (!id) return
+  const code = r?.program_code || r?.program_id
+  if (!code) return
   rightTab.value = 'details'
   programLoading.value = true
   programError.value = ''
@@ -59,13 +59,14 @@ async function openProgramDetails (r) {
   selectedProgram.value = null
   if (mobilePanelOpen.value) closeMobilePanel()
   
-  // Parallel fetch for speed
-  const p1 = catalogGetProgramDetail(id, idToken.value)
-  const p2 = catalogGetProgramCareers(id)
-
   try {
-    const [detail, careers] = await Promise.all([p1, p2])
+    // Attempt load by code/id
+    const detail = await catalogGetProgramDetail(code, idToken.value)
     selectedProgram.value = detail
+    
+    // Once we have the detail, we might have a stable DB id for careers
+    const dbId = detail.id || code
+    const careers = await catalogGetProgramCareers(dbId)
     careerPath.value = careers?.career_path || null
   } catch (e) {
     programError.value = e?.message || 'Failed to load program details'
@@ -464,19 +465,19 @@ onBeforeUnmount(() => {
 </script>
 
 <template>
-  <main class="h-screen app-bg overflow-hidden flex flex-col relative">
+  <main class="h-[100dvh] w-full app-bg overflow-hidden flex flex-col relative">
     <!-- background decor -->
     <div class="absolute top-0 right-0 -z-10 w-1/3 h-1/3 bg-brand/5 blur-[120px] rounded-full"></div>
     <div class="absolute bottom-10 left-10 -z-10 w-1/4 h-1/4 bg-brand/5 blur-[100px] rounded-full"></div>
 
-    <header class="w-full bg-white/40 backdrop-blur-md border-b border-white/80 px-4 py-3 sm:px-6 flex items-center justify-between gap-4 shrink-0">
+    <header class="w-full bg-white/40 backdrop-blur-md border-b border-white/80 px-4 py-2 sm:px-6 flex items-center justify-between gap-4 shrink-0 min-h-[56px]">
       <div class="min-w-0">
-        <h1 class="text-xl font-black text-gray-900 tracking-tight flex items-center gap-2">
+        <h1 class="text-base font-black text-gray-900 tracking-tight flex items-center gap-2">
           Gemini Assistant
           <span class="inline-flex h-2 w-2 rounded-full bg-brand animate-pulse"></span>
         </h1>
-        <div class="flex items-center gap-2 text-[10px] font-bold text-gray-500 uppercase tracking-widest truncate">
-          <span class="bg-gray-100 px-1.5 py-0.5 rounded">{{ sessionShort }}</span>
+        <div class="flex items-center gap-2 text-[9px] font-bold text-gray-500 uppercase tracking-widest truncate">
+          <span class="bg-gray-100/80 px-1.5 py-0.5 rounded">{{ sessionShort }}</span>
           <span class="mx-0.5 opacity-30">/</span>
           <span class="text-brand">{{ requestedMode }}</span>
           <span class="mx-0.5 opacity-30">/</span>
@@ -514,11 +515,12 @@ onBeforeUnmount(() => {
 
         <button 
           v-if="sidebarCollapsed"
-          class="btn-outline btn-sm h-9 px-3 border-transparent hover:bg-white/50 text-brand"
+          class="btn-outline btn-sm h-9 px-3 border-transparent hover:bg-white/50 text-brand animate-in fade-in slide-in-from-right-2"
           title="Open Intelligence"
           @click="sidebarCollapsed = false"
         >
-          <ChevronLeft class="h-4 w-4" />
+          <ChevronLeft class="h-4 w-4 mr-1" />
+          <span class="text-[10px] font-black uppercase tracking-widest">Intelligence</span>
         </button>
 
         <button 
@@ -632,8 +634,8 @@ onBeforeUnmount(() => {
       <aside
         v-if="showPanel"
         :class="[
-          'z-50 lg:z-auto transition-all duration-300 ease-in-out h-full overflow-hidden flex flex-col',
-          'fixed inset-y-0 right-0 w-full sm:w-[460px] max-w-full bg-white/95 backdrop-blur-3xl shadow-2xl lg:shadow-none lg:bg-transparent lg:static lg:w-[400px] lg:min-w-[400px] lg:col-span-2',
+          'z-50 lg:z-auto transition-all duration-300 ease-in-out h-full overflow-hidden flex flex-col shrink-0',
+          'fixed inset-y-0 right-0 w-full sm:w-[460px] max-w-full bg-white/95 backdrop-blur-3xl shadow-2xl lg:shadow-none lg:bg-transparent lg:static lg:w-[400px]',
           mobilePanelOpen ? 'translate-x-0' : 'translate-x-full lg:translate-x-0',
           sidebarCollapsed ? 'hidden' : 'block'
         ]"
@@ -767,13 +769,78 @@ onBeforeUnmount(() => {
                    <p class="text-xs text-gray-600 leading-relaxed">{{ selectedProgram.description }}</p>
                 </div>
 
+                <!-- Eligibility & Requirements -->
+                <div v-if="selectedProgram.requirement_groups?.length" class="space-y-3">
+                  <h4 class="text-[10px] font-black text-gray-400 uppercase tracking-widest">KCSE Requirements</h4>
+                  <div class="space-y-2">
+                    <div 
+                      v-for="(grp, gidx) in selectedProgram.requirement_groups" 
+                      :key="gidx"
+                      class="p-3 rounded-2xl bg-white border border-gray-100 shadow-sm"
+                    >
+                      <div class="flex items-center justify-between mb-2">
+                        <span class="text-[9px] font-black text-gray-400 uppercase tracking-widest">{{ grp.name || `Subject Group ${gidx + 1}` }}</span>
+                        <span class="text-[9px] font-black text-brand bg-brand/5 px-2 py-0.5 rounded-lg">Pick {{ grp.pick }}</span>
+                      </div>
+                      <div class="flex flex-wrap gap-2">
+                         <div 
+                           v-for="(opt, oidx) in grp.options" 
+                           :key="oidx"
+                           class="flex items-center gap-1.5 bg-slate-50 px-2 py-1 rounded-lg border border-slate-100"
+                         >
+                            <span class="text-[10px] font-black text-gray-700">{{ opt.subject_code }}</span>
+                            <span class="text-[10px] font-black text-indigo-600">{{ opt.min_grade }}</span>
+                         </div>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+
+                <!-- Cutoffs -->
+                <div v-if="selectedProgram.cutoffs?.length" class="space-y-3">
+                  <h4 class="text-[10px] font-black text-gray-400 uppercase tracking-widest">KUCCPS Cutoff History</h4>
+                  <div class="grid grid-cols-2 gap-2">
+                    <div 
+                      v-for="c in selectedProgram.cutoffs.slice(0, 4)" 
+                      :key="c.year"
+                      class="p-3 rounded-2xl bg-indigo-50/30 border border-indigo-100/50 flex flex-col gap-1"
+                    >
+                      <span class="text-[9px] font-black text-indigo-400 uppercase tracking-widest">{{ c.year }}</span>
+                      <span class="text-base font-black text-indigo-700">{{ c.cutoff }}</span>
+                    </div>
+                  </div>
+                </div>
+
+                <!-- Costs (conditional) -->
+                <div v-if="selectedProgram.costs?.length" class="p-4 rounded-2xl bg-emerald-50 border border-emerald-100">
+                  <h4 class="text-[10px] font-black text-emerald-600/60 uppercase tracking-widest mb-1">Estimated Annual Fee</h4>
+                  <p class="text-xl font-black text-emerald-700">
+                    {{ selectedProgram.costs[0].currency }} {{ selectedProgram.costs[0].amount?.toLocaleString() }}
+                  </p>
+                  <p v-if="selectedProgram.costs[0].updated_at" class="text-[8px] text-emerald-600/40 font-bold uppercase tracking-widest mt-1">Source: {{ selectedProgram.costs[0].source_id || 'Institutional Data' }}</p>
+                </div>
+
                 <!-- Career Path Visualization -->
                 <div v-if="careerPath" class="space-y-4">
                   <h4 class="text-[10px] font-black text-gray-400 uppercase tracking-widest">Career Progression</h4>
                   <div class="bg-white/40 rounded-3xl p-4 border border-white">
-                    <CareerPath :data="careerPath" />
+                    <CareerPath :path="careerPath" />
                   </div>
                 </div>
+              </div>
+
+              <div v-else-if="programError" class="p-6 text-center space-y-4">
+                 <div class="h-16 w-16 mx-auto rounded-full bg-red-50 flex items-center justify-center text-red-500">
+                    <Info class="h-8 w-8" />
+                 </div>
+                 <div>
+                    <h4 class="text-sm font-black text-gray-900">Failed to load details</h4>
+                    <p class="text-xs text-red-500 mt-1">{{ programError }}</p>
+                 </div>
+                 <button 
+                    class="btn-outline btn-sm w-full"
+                    @click="selectedProgram = null; programError = ''"
+                 >Try again</button>
               </div>
 
               <div v-else class="flex flex-col items-center justify-center py-20 text-center gap-4 opacity-40">
