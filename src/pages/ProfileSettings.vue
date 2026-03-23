@@ -305,7 +305,7 @@ onMounted(async () => {
       <div class="flex items-center justify-between mb-8">
         <div class="space-y-1">
           <h1 class="text-3xl font-black text-gray-900 tracking-tight">Profile Settings</h1>
-          <p class="text-sm font-bold text-gray-500 uppercase tracking-widest">Manage your academic and career DNA</p>
+          <p class="text-sm font-bold text-gray-600 uppercase tracking-widest">Manage your academic and career profile</p>
         </div>
         <button
           class="h-12 w-12 rounded-2xl bg-white border border-gray-100 shadow-sm flex items-center justify-center text-gray-600 hover:text-brand hover:border-brand/20 transition-all active:scale-95"
@@ -333,7 +333,7 @@ onMounted(async () => {
               'flex items-center gap-2 px-6 py-3 rounded-xl text-xs font-black uppercase tracking-widest transition-all whitespace-nowrap',
               activeTab === t.id 
                 ? 'bg-white text-brand shadow-sm border border-gray-100' 
-                : 'text-gray-400 hover:text-gray-600 hover:bg-white/50'
+                : 'text-gray-500 hover:text-gray-700 hover:bg-white/50'
             ]"
           >
             <component :is="t.icon" class="h-4 w-4" />
@@ -419,7 +419,7 @@ onMounted(async () => {
                     'p-4 rounded-2xl border text-sm font-black uppercase tracking-widest transition-all text-center',
                     educationLevel === opt.id 
                       ? 'bg-white border-brand text-brand shadow-sm ring-4 ring-brand/10' 
-                      : 'bg-white/50 border-gray-100 text-gray-400 hover:border-gray-200'
+                      : 'bg-white/50 border-gray-100 text-gray-500 hover:border-gray-200'
                   ]"
                 >
                   {{ opt.label }}
@@ -503,7 +503,7 @@ onMounted(async () => {
               <div class="h-10 w-10 rounded-2xl bg-brand/5 flex items-center justify-center text-brand">
                 <Sparkles class="h-5 w-5" />
               </div>
-              <h2 class="text-xl font-black text-gray-900 tracking-tight">RIASEC DNA</h2>
+              <h2 class="text-xl font-black text-gray-900 tracking-tight">RIASEC Interests</h2>
             </div>
             
             <div class="p-8 rounded-[2rem] bg-indigo-50 border border-indigo-100 flex flex-col items-center text-center gap-6">
@@ -512,7 +512,7 @@ onMounted(async () => {
               </div>
               <div class="space-y-2">
                 <h3 class="text-lg font-black text-indigo-900">Psychometric Interests</h3>
-                <p class="text-sm text-indigo-700/60 max-w-md mx-auto">RIASEC data is generated from your onboarding test and identifies your core personality traits (Realistic, Investigative, Artistic, etc.).</p>
+                <p class="text-sm text-indigo-700 max-w-md mx-auto">RIASEC data is generated from your onboarding test and identifies your core personality traits (Realistic, Investigative, Artistic, etc.).</p>
               </div>
               <div class="flex gap-4">
                 <button @click="router.push('/onboarding')" class="btn-primary px-8 py-3 rounded-2xl shadow-lg shadow-brand/20">Re-run Onboarding</button>
@@ -537,7 +537,7 @@ onMounted(async () => {
             @click="save"
           >
             <Save class="h-4 w-4" />
-            Save DNA Changes
+            Save Profile Changes
           </button>
         </div>
       </div>

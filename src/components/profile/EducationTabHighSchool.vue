@@ -55,7 +55,7 @@ function setSubjectGrade(code, e) {
           <h3 class="text-lg font-black text-gray-900 tracking-tight flex items-center gap-2">
             KCSE Subjects & Grades
           </h3>
-          <p class="text-xs font-bold text-gray-500 uppercase tracking-widest">
+          <p class="text-xs font-bold text-gray-700 uppercase tracking-widest">
             Reqs: {{ knecMinSubjects }}–{{ knecMaxSubjects }} subjects (incl. Math & Lang)
           </p>
         </div>
@@ -94,7 +94,7 @@ function setSubjectGrade(code, e) {
           <div class="flex items-start justify-between">
             <div class="min-w-0">
               <div class="text-sm font-black text-gray-900 truncate">{{ subjectByCode?.[code]?.name || code }}</div>
-              <div class="text-[10px] font-bold text-gray-400 uppercase tracking-widest">{{ code }} · {{ subjectByCode?.[code]?.group || 'Regular' }}</div>
+              <div class="text-[10px] font-bold text-gray-600 uppercase tracking-widest">{{ code }} · {{ subjectByCode?.[code]?.group || 'Regular' }}</div>
             </div>
             <button
               type="button"
@@ -135,24 +135,24 @@ function setSubjectGrade(code, e) {
            :class="hsValidation?.ok ? 'bg-emerald-50 border-emerald-100' : 'bg-slate-50 border-gray-100'">
         <div class="flex flex-wrap items-center gap-6">
           <div class="flex items-center gap-2">
-            <div :class="['h-6 w-6 rounded-lg flex items-center justify-center', hsValidation?.ok ? 'bg-emerald-200 text-emerald-700' : 'bg-slate-200 text-slate-500']">
+            <div :class="['h-6 w-6 rounded-lg flex items-center justify-center', hsValidation?.ok ? 'bg-emerald-200 text-emerald-700' : 'bg-slate-200 text-slate-600']">
               <CheckCircle2 class="h-4 w-4" />
             </div>
-            <span class="text-xs font-black uppercase tracking-widest text-gray-600">Selected: {{ hsValidation?.n || 0 }}/{{ knecMaxSubjects }}</span>
+            <span class="text-xs font-black uppercase tracking-widest text-gray-700">Selected: {{ hsValidation?.n || 0 }}/{{ knecMaxSubjects }}</span>
           </div>
           
           <div class="flex items-center gap-2">
             <div :class="['h-6 w-6 rounded-lg flex items-center justify-center', hsValidation?.hasMandatory ? 'bg-emerald-200 text-emerald-700' : 'bg-amber-100 text-amber-600']">
               <GraduationCap class="h-4 w-4" />
             </div>
-            <span class="text-xs font-black uppercase tracking-widest text-gray-600">Math: {{ hsValidation?.hasMandatory ? 'OK' : 'MISSING' }}</span>
+            <span class="text-xs font-black uppercase tracking-widest text-gray-700">Math: {{ hsValidation?.hasMandatory ? 'OK' : 'MISSING' }}</span>
           </div>
 
           <div class="flex items-center gap-2">
             <div :class="['h-6 w-6 rounded-lg flex items-center justify-center', hsValidation?.hasLanguage ? 'bg-emerald-200 text-emerald-700' : 'bg-amber-100 text-amber-600']">
               <Sparkles class="h-4 w-4" />
             </div>
-            <span class="text-xs font-black uppercase tracking-widest text-gray-600">Language: {{ hsValidation?.hasLanguage ? 'OK' : 'MISSING' }}</span>
+            <span class="text-xs font-black uppercase tracking-widest text-gray-700">Language: {{ hsValidation?.hasLanguage ? 'OK' : 'MISSING' }}</span>
           </div>
         </div>
 

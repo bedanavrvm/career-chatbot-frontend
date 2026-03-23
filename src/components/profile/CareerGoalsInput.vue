@@ -29,7 +29,7 @@ function onInput(e) {
             @input="onInput"
             @keydown.enter.prevent="emit('add')"
           />
-          <div class="absolute right-3 top-1/2 -translate-y-1/2 text-[10px] font-black text-gray-300 uppercase tracking-widest pointer-events-none group-focus-within:text-brand/40">
+          <div class="absolute right-3 top-1/2 -translate-y-1/2 text-[10px] font-black text-gray-400 uppercase tracking-widest pointer-events-none group-focus-within:text-brand/40">
             Enter
           </div>
         </div>
@@ -52,13 +52,13 @@ function onInput(e) {
           <span class="text-xs font-black text-gray-700 tracking-tight">{{ g }}</span>
           <button 
             type="button" 
-            class="h-5 w-5 rounded-md flex items-center justify-center text-gray-400 hover:text-red-500 hover:bg-red-50 transition-colors" 
+            class="h-5 w-5 rounded-md flex items-center justify-center text-gray-600 hover:text-red-500 hover:bg-red-50 transition-colors" 
             @click="emit('remove', g)"
           >
             <X class="h-3 w-3" />
           </button>
         </div>
-        <div v-if="!(careerGoals || []).length" class="text-xs font-bold text-gray-400 uppercase tracking-widest flex items-center gap-2 opacity-60">
+        <div v-if="!(careerGoals || []).length" class="text-xs font-bold text-gray-600 uppercase tracking-widest flex items-center gap-2 opacity-60">
            <Target class="h-3.5 w-3.5" />
            No goals defined yet
         </div>

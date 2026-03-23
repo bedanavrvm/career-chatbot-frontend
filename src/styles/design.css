@@ -47,16 +47,16 @@
 
   .chip-btn { @apply inline-flex items-center rounded-full border border-gray-200 bg-white px-3 py-1 text-sm transition-all hover:bg-gray-50 hover:shadow-sm active:scale-95 focus:outline-none focus:ring-2 focus:ring-brand/20; }
 
-  .input { @apply block w-full rounded-xl border-2 border-gray-300 bg-white px-3 py-2.5 text-sm text-gray-900 placeholder:text-gray-400 shadow-inner focus:outline-none focus:border-brand focus:ring-4 focus:ring-brand/20 transition; }
+  .input { @apply block w-full rounded-xl border-2 border-gray-300 bg-white px-3 py-2.5 text-sm text-gray-900 placeholder:text-gray-500 shadow-inner focus:outline-none focus:border-brand focus:ring-4 focus:ring-brand/20 transition; }
   .input-md { @apply px-3 py-2.5 text-sm; }
   .input-lg { @apply px-3 py-2.5 text-sm; }
   .input-error { @apply border-red-400 focus:border-red-500 focus:ring-red-200; }
   .label { @apply block text-xs font-semibold text-gray-800; }
-  .help-text { @apply mt-1 text-xs text-gray-500; }
+  .help-text { @apply mt-1 text-xs text-gray-600; }
   .error-text { @apply mt-1 text-xs text-red-600; }
 
   .input-group { @apply relative; }
-  .input-icon { @apply pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400; }
+  .input-icon { @apply pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-500; }
   .with-icon-left { @apply pl-10; }
   .input-action { @apply absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600; }
   .with-icon-right { @apply pr-10; }

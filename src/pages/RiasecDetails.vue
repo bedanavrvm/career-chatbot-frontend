@@ -4,7 +4,7 @@ import { useRouter } from 'vue-router'
 import { 
   ArrowLeft, 
   Target, 
-  Dna, 
+  Fingerprint, 
   Lightbulb, 
   Users2, 
   Rocket, 
@@ -144,11 +144,11 @@ const answersBreakdown = computed(() => {
           </button>
           <div>
             <h1 class="text-xl font-black text-gray-900 leading-tight">RIASEC Profile</h1>
-            <p class="text-[10px] font-bold text-gray-500 uppercase tracking-widest mt-0.5">Interest DNA Analysis</p>
+            <p class="text-[10px] font-black text-gray-500 uppercase tracking-widest mt-0.5">Interest Profile Analysis</p>
           </div>
         </div>
         <div class="h-10 px-4 rounded-2xl bg-brand/5 border border-brand/10 flex items-center gap-2">
-           <Dna class="h-4 w-4 text-brand" />
+           <Fingerprint class="h-4 w-4 text-brand" />
            <span class="text-[10px] font-black text-brand uppercase tracking-widest">{{ (riasec.top || []).join(' · ') }}</span>
         </div>
       </div>
