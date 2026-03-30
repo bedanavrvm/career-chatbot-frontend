@@ -131,7 +131,7 @@ const providerStorageKey = computed(() => {
 })
 
 const sessionId = ref(localStorage.getItem(storageKey.value) || uuidv4())
-const nlpProvider = ref(localStorage.getItem(providerStorageKey.value) || 'local')
+const nlpProvider = ref('gemini')
 const input = ref('')
 const inputEl = ref(null)
 const sending = ref(false)
@@ -243,11 +243,7 @@ const useGemini = computed({
   set: (v) => { nlpProvider.value = v ? 'gemini' : 'local' },
 })
 
-watch(nlpProvider, (v) => {
-  const val = String(v || '').toLowerCase()
-  if (!['local', 'gemini'].includes(val)) return
-  localStorage.setItem(providerStorageKey.value, val)
-})
+// nlpProvider is always 'gemini'; local NLP is a silent server-side fallback
 
 function extractCitationIds (text) {
   const s = String(text || '')
@@ -531,14 +527,11 @@ onBeforeUnmount(() => {
       </div>
 
       <div class="flex items-center gap-2">
-        <!-- Providers Toggle -->
-        <label class="hidden sm:flex items-center gap-2 px-3 py-1.5 rounded-xl bg-white/60 border border-white shadow-sm cursor-pointer hover:bg-white transition-colors">
-          <span class="text-[10px] font-black uppercase tracking-widest text-gray-400" :class="!useGemini ? 'text-brand' : ''">Local</span>
-          <div class="relative inline-flex h-5 w-9 items-center rounded-full bg-slate-200 transition-colors" @click.stop="useGemini = !useGemini">
-            <span :class="['inline-block h-3.5 w-3.5 transform rounded-full bg-white transition-transform', useGemini ? 'translate-x-5' : 'translate-x-1']"></span>
-          </div>
-          <span class="text-[10px] font-black uppercase tracking-widest text-gray-400" :class="useGemini ? 'text-brand' : ''">Gemini</span>
-        </label>
+        <!-- Provider Badge: always Gemini (local NLP is silent fallback) -->
+        <div class="hidden sm:flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-brand/5 border border-brand/10">
+          <span class="inline-flex h-1.5 w-1.5 rounded-full bg-brand animate-pulse"></span>
+          <span class="text-[10px] font-black uppercase tracking-widest text-brand">Gemini AI</span>
+        </div>
 
         <button 
           class="btn-outline btn-sm h-9 border-slate-200 bg-white shadow-sm lg:hidden"
