@@ -18,7 +18,7 @@ const router = useRouter()
 const { user: currentUser } = useAuth()
 
 const userEmail = computed(() => currentUser.value?.email || currentUser.value?.displayName || '')
-const appName = computed(() => import.meta.env.VITE_APP_NAME || 'Career Chatbot')
+const appName = computed(() => import.meta.env.VITE_APP_NAME || 'SKILLSYNC')
 
 async function logout() {
   await signOut(auth)

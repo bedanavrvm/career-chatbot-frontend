@@ -1,4 +1,4 @@
-# Career Chatbot Frontend (Vue 3 + Vite)
+# SKILLSYNC Frontend (Vue 3 + Vite)
 
 ## Setup
 

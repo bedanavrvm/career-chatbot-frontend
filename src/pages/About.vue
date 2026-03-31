@@ -4,7 +4,7 @@
 <template>
   <main class="container-page py-12">
     <section class="mb-10">
-      <h1 class="text-3xl font-bold text-gray-900">About Career Chatbot</h1>
+      <h1 class="text-3xl font-bold text-gray-900">About SKILLSYNC</h1>
       <p class="mt-3 text-gray-600 max-w-prose">
         This project provides personalized, explainable career guidance tailored to Kenyan students. It aligns
         your grades, interests (RIASEC), skills, and lifestyle preferences with KUCCPS programs and local context.

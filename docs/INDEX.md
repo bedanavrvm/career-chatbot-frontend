@@ -1,4 +1,4 @@
-# Career Chatbot Frontend — Documentation Index
+# SKILLSYNC Frontend — Documentation Index
 
 This folder contains documentation for the **career-chatbot-frontend** (Vue 3 + Vite) application.
 
